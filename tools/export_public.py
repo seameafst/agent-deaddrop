@@ -19,6 +19,7 @@
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from collections import Counter
@@ -35,10 +36,19 @@ except Exception:
 UA = "deaddrop-dataset-refresh/1.0"
 
 
-def _get_json(url: str, timeout: int = 30):
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+def _get_json(url: str, timeout: int = 30, retries: int = 4):
+    """带退避重试的 JSON 抓取（ngrok 隧道偶发 TLS 中断，重试即可救回）。"""
+    last = None
+    for attempt in range(1, max(1, retries) + 1):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001 - 网络类异常统一重试
+            last = exc
+            if attempt < max(1, retries):
+                time.sleep(min(8, 2 * attempt))
+    raise RuntimeError(f"抓取失败（{retries} 次尝试）: {url} -> {last}")
 
 
 # ---------------- 模式二：只用公开端点（无依赖、可在云端跑） ----------------
