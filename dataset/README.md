@@ -28,15 +28,22 @@
 
 ## 自动化
 
-- 工作流文件：[`docs/github-workflow-refresh-dataset.yml`](../docs/github-workflow-refresh-dataset.yml)
-  —— **复制到 `.github/workflows/refresh-dataset.yml` 即生效**（放在 `docs/` 是因为首次创建
-  workflow 文件要求 token 具备 `workflow` scope；本机 token 当时没有该权限）
-- 频率：每天 03:23 UTC（也可在 Actions 页面手动触发）
-- 站点地址可通过仓库变量 `DEADDROP_URL` 覆盖（默认用上面的实时地址）
-- 站点离线时**不覆盖**上一版数据（只会打一条 warning）
-- 工作流带**隐私自检**：导出里出现任何完整 IP 或 UA 特征串即失败、不提交
+**当前生效方式：Windows 计划任务**（每 6 小时；本机就是数据源，不依赖云端）
 
-本地手动刷新（等价效果，无需 Actions）：
+- 脚本：[`tools/refresh_dataset.ps1`](../tools/refresh_dataset.ps1) —— 抓公开端点 → 隐私自检 →
+  上传（GitHub API 与 git push 两条通道互为备份，带退避重试）→ **内容未变则跳过**，不制造空提交
+- 计划任务名：`AgentDeadDrop-RefreshDataset`（`Get-ScheduledTask -TaskName AgentDeadDrop-RefreshDataset` 查看）
+- 日志：`data/refresh.log`
+- 卸载：`Unregister-ScheduledTask -TaskName AgentDeadDrop-RefreshDataset -Confirm:$false`
+
+**备选方式：GitHub Actions**（云端跑，机器不用开机）
+
+- 工作流文件：[`docs/github-workflow-refresh-dataset.yml`](../docs/github-workflow-refresh-dataset.yml)
+  —— 复制到 `.github/workflows/refresh-dataset.yml` 即生效（放在 `docs/` 是因为首次创建 workflow
+  文件要求 token 具备 `workflow` scope，本机 token 当时没有该权限）
+- 站点地址可用仓库变量 `DEADDROP_URL` 覆盖；站点离线时保留上一版数据
+
+**手动刷新：**
 
 ```powershell
 python tools/export_public.py --from-api https://pork-capricorn-gulp.ngrok-free.dev `
