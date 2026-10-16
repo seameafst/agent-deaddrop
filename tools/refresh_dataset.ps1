@@ -84,17 +84,35 @@ if ($prev -eq $sha -and -not $Force) {
 }
 
 # 4) 通道一：GitHub API 上传（带退避重试）
-$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($outFile))
+#
+# 注意两点（都是踩过的坑）：
+#   a) 必须用 --input 传 JSON 文件：把 base64 放在命令行上会在文件变大后超过
+#      Windows 约 32KB 的命令行上限，gh 根本启动不了；
+#   b) 判定成功必须用 $?（命令是否真的跑起来）而不是只看 $LASTEXITCODE ——
+#      命令启动失败时 $LASTEXITCODE 会保留上一条命令的 0，造成"假成功"，
+#      进而写下指纹、以为已上传，实际远端纹丝不动。
 $msg = "chore(dataset): refresh public export ($(Get-Date -Format 'yyyy-MM-dd HH:mm'))"
+$remotePath = "dataset/public-export.json"
 $uploaded = $false
 for ($i = 1; $i -le $MaxAttempts -and -not $uploaded; $i++) {
     $remoteSha = $null
-    try { $remoteSha = (& gh api "repos/$Repo/contents/dataset/public-export.json" --jq .sha 2>$null) } catch { $remoteSha = $null }
-    $args = @("api", "--method", "PUT", "repos/$Repo/contents/dataset/public-export.json",
-        "-f", "message=$msg", "-f", "content=$b64", "-f", "branch=main")
-    if ($remoteSha) { $args += @("-f", "sha=$($remoteSha.Trim())") }
-    $null = & gh @args 2>&1 | Out-String
-    if ($LASTEXITCODE -eq 0) { $uploaded = $true; Write-Log "通道一（API）上传成功（第 $i 次尝试）" }
+    $s = & gh api "repos/$Repo/contents/$remotePath" --jq .sha 2>$null
+    if ($? -and $s) { $remoteSha = $s.Trim() }
+
+    $payload = @{
+        message = $msg
+        content = [Convert]::ToBase64String([IO.File]::ReadAllBytes($outFile))
+        branch  = "main"
+    }
+    if ($remoteSha) { $payload["sha"] = $remoteSha }
+    $tmp = Join-Path $env:TEMP ("deaddrop-payload-" + [guid]::NewGuid().ToString("N") + ".json")
+    [IO.File]::WriteAllText($tmp, ($payload | ConvertTo-Json -Compress), (New-Object System.Text.UTF8Encoding($false)))
+
+    $null = & gh api --method PUT "repos/$Repo/contents/$remotePath" --input $tmp 2>&1 | Out-String
+    $ok = $? -and ($LASTEXITCODE -eq 0)
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+
+    if ($ok) { $uploaded = $true; Write-Log "通道一（API）上传成功（第 $i 次尝试）" }
     else {
         Write-Log "通道一失败（第 $i/$MaxAttempts 次），退避重试…"
         Start-Sleep -Seconds ([Math]::Min(90, 5 * $i))
@@ -105,10 +123,11 @@ for ($i = 1; $i -le $MaxAttempts -and -not $uploaded; $i++) {
 if (-not $uploaded) {
     Write-Log "改用通道二（git push）"
     for ($i = 1; $i -le 3 -and -not $uploaded; $i++) {
-        & git add dataset/public-export.json 2>&1 | Out-Null
+        & git add $remotePath 2>&1 | Out-Null
         & git -c user.name="seameafst" -c user.email="seameafst@users.noreply.github.com" commit -q -m $msg 2>&1 | Out-Null
         & git push -q origin main 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) { $uploaded = $true; Write-Log "通道二（git push）成功（第 $i 次尝试）" }
+        $ok = $? -and ($LASTEXITCODE -eq 0)
+        if ($ok) { $uploaded = $true; Write-Log "通道二（git push）成功（第 $i 次尝试）" }
         else { Write-Log "通道二失败（第 $i/3 次），退避重试…"; Start-Sleep -Seconds (10 * $i) }
     }
 }
