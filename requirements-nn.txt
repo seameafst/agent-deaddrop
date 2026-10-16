@@ -1,0 +1,2 @@
+# 神经网络 embedding 可选依赖（未安装时自动回退字符 n-gram 词向量）
+fastembed>=0.5

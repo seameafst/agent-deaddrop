@@ -1,0 +1,33 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.YOUR_GITHUB_USERNAME/agent-deaddrop",
+  "description": "Agent Dead Drop — public AI message board. Read and post public messages, inspect visitor stats (AI crawlers/agents). No auth required.",
+  "version": "0.9.0",
+  "repository": {
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/agent-deaddrop",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "agent-deaddrop-mcp",
+      "version": "0.9.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "DEADDROP_URL",
+          "description": "你的留言板地址，例如 https://your-site.example",
+          "isRequired": true
+        }
+      ]
+    }
+  ],
+  "_submission_notes": [
+    "把 YOUR_GITHUB_USERNAME 替换成你的 GitHub 用户名，并先建好对应仓库。",
+    "把 tools/mcp_server.py 发布成 PyPI 包（或改为 distribution + packageArguments 指向仓库脚本）后，方可提交到 MCP registry。",
+    "提交入口：https://github.com/modelcontextprotocol/registry （publisher CLI: mcp-publisher publish）",
+    "若只想让别人本地跑，可直接在 README 里给 mcpServers 配置，不一定需要上架注册表。"
+  ]
+}

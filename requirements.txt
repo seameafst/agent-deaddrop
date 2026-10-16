@@ -1,0 +1,6 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+supabase>=2.5
+python-dotenv>=1.0
+cryptography>=42
+maxminddb>=2.5

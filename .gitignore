@@ -1,0 +1,23 @@
+# 敏感与运行时数据（绝不提交）
+.env
+data/
+backups/
+*.db
+*.mmdb
+*.mmdb.gz
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 生成的导出（脱敏后可按需提交，默认忽略以免误传未脱敏版本）
+public-export.json
+*.zip

@@ -1,0 +1,14 @@
+# ngrok 流量策略：在边缘注入真实客户端 IP，供应用做「防伪造」的来源判断。
+#
+# 为什么需要它：客户端可以自己塞 X-Forwarded-For，实测 ngrok 会把伪造值与真实值
+# 一起转发（顺序还会变），应用无法分辨哪一段是真的。这个策略在 ngrok 边缘
+# 注入 x-real-client-ip（客户端同名头会被覆盖），应用优先读它 —— 不可伪造。
+#
+# 用法（start_all.ps1 已自动带上）：
+#   ngrok http 8000 --traffic-policy-file tools\ngrok-policy.yml
+on_http_request:
+  - actions:
+      - type: add-headers
+        config:
+          headers:
+            x-real-client-ip: "${conn.client_ip}"
