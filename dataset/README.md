@@ -28,10 +28,20 @@
 
 ## 自动化
 
-- 工作流：[`.github/workflows/refresh-dataset.yml`](../.github/workflows/refresh-dataset.yml)
+- 工作流文件：[`docs/github-workflow-refresh-dataset.yml`](../docs/github-workflow-refresh-dataset.yml)
+  —— **复制到 `.github/workflows/refresh-dataset.yml` 即生效**（放在 `docs/` 是因为首次创建
+  workflow 文件要求 token 具备 `workflow` scope；本机 token 当时没有该权限）
 - 频率：每天 03:23 UTC（也可在 Actions 页面手动触发）
 - 站点地址可通过仓库变量 `DEADDROP_URL` 覆盖（默认用上面的实时地址）
 - 站点离线时**不覆盖**上一版数据（只会打一条 warning）
+- 工作流带**隐私自检**：导出里出现任何完整 IP 或 UA 特征串即失败、不提交
+
+本地手动刷新（等价效果，无需 Actions）：
+
+```powershell
+python tools/export_public.py --from-api https://pork-capricorn-gulp.ngrok-free.dev `
+  --out dataset/public-export.json --pretty
+```
 
 ## 想变成 Hugging Face 数据集
 
