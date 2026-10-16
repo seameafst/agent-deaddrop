@@ -18,6 +18,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# 生成的导出（脱敏后可按需提交，默认忽略以免误传未脱敏版本）
-public-export.json
+# 生成的导出：根目录下的默认忽略（避免误传未脱敏版本）；
+# dataset/ 下的已确认脱敏（工具导出 + 自查过），显式放行
+/public-export.json
+!dataset/public-export.json
 *.zip
+dist/
