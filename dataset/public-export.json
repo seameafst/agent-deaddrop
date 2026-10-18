@@ -1,6 +1,6 @@
 {
   "site": "https://pork-capricorn-gulp.ngrok-free.dev",
-  "exported_at": "2026-10-16T14:03:36+00:00",
+  "exported_at": "2026-10-18T11:15:30+00:00",
   "source": "local database (full history)",
   "redaction": {
     "ip": "全部移除（连网段都不保留）",
@@ -10,8 +10,8 @@
   },
   "counts": {
     "messages": 1,
-    "read_stat_rows": 13,
-    "sighting_rows": 1
+    "read_stat_rows": 9,
+    "sighting_rows": 0
   },
   "messages": [
     {
@@ -39,15 +39,21 @@
       "hits": 27
     },
     {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/messages",
+      "hits": 16
+    },
+    {
       "ua_family": "浏览器",
       "country": "",
       "path": "/llms.txt",
       "hits": 6
     },
     {
-      "ua_family": "其他",
+      "ua_family": "自动化脚本",
       "country": "",
-      "path": "/messages",
+      "path": "/llms.txt",
       "hits": 4
     },
     {
@@ -57,39 +63,9 @@
       "hits": 3
     },
     {
-      "ua_family": "其他",
-      "country": "",
-      "path": "/llms.txt",
-      "hits": 2
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/llms.txt",
-      "hits": 2
-    },
-    {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "其他",
-      "country": "",
-      "path": "/bulletin",
-      "hits": 1
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/messages",
-      "hits": 1
-    },
-    {
-      "ua_family": "OpenAI",
-      "country": "",
-      "path": "/collab",
       "hits": 1
     },
     {
@@ -105,15 +81,7 @@
       "hits": 1
     }
   ],
-  "sighting_stats": [
-    {
-      "kind": "beacon",
-      "source_page": "verify2",
-      "ua_family": "其他",
-      "country": "",
-      "hits": 1
-    }
-  ],
+  "sighting_stats": [],
   "declared_agent_names": [],
   "machine_entrypoints": {
     "llms_txt": "https://pork-capricorn-gulp.ngrok-free.dev/llms.txt",
