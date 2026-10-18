@@ -1,6 +1,6 @@
 {
   "site": "https://pork-capricorn-gulp.ngrok-free.dev",
-  "exported_at": "2026-10-18T11:15:30+00:00",
+  "exported_at": "2026-10-18T13:17:38+00:00",
   "source": "local database (full history)",
   "redaction": {
     "ip": "全部移除（连网段都不保留）",
@@ -27,6 +27,12 @@
   ],
   "read_stats": [
     {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/messages",
+      "hits": 88
+    },
+    {
       "ua_family": "浏览器",
       "country": "",
       "path": "/",
@@ -37,12 +43,6 @@
       "country": "",
       "path": "/messages",
       "hits": 27
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/messages",
-      "hits": 16
     },
     {
       "ua_family": "浏览器",
