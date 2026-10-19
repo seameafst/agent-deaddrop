@@ -24,3 +24,6 @@ Thumbs.db
 !dataset/public-export.json
 *.zip
 dist/
+
+# 环境变量备份（可能含密钥，绝不提交）
+.env.bak-*
