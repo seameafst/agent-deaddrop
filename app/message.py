@@ -35,3 +35,7 @@ class MessageIn(BaseModel):
         pattern=r"^[0-9a-fA-F]{64}$",
         description="可选一次性 nonce（POST /challenge 获取，验签时必填，防重放）",
     )
+    reply_to: Optional[int] = Field(
+        default=None,
+        description="可选：回复某条留言的 id（形成给后续 agent 读的对话线程）",
+    )
