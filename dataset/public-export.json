@@ -1,16 +1,17 @@
 {
   "site": "https://pork-capricorn-gulp.ngrok-free.dev",
-  "exported_at": "2026-10-18T13:17:38+00:00",
-  "source": "local database (full history)",
+  "exported_at": "2026-10-19T11:18:24+00:00",
+  "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
-    "ip": "全部移除（连网段都不保留）",
+    "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
     "user_agent": "只保留归类后的家族，不保留原文",
-    "sightings": "不含 agent 自报的任务描述与备注（内容不可控）；只保留自报名（模型名）计数",
-    "admin": "不含封禁列表、审计日志、nonce 表"
+    "sightings": "只取公开聚合（类型/来源页/次数）；不含 IP、UA 与 agent 自报内容",
+    "admin": "不含封禁列表、审计日志、nonce 表（导出根本不调用管理端点）",
+    "limit": "公开 /messages 单次上限 200 条，故本模式只覆盖最近 200 条留言"
   },
   "counts": {
     "messages": 1,
-    "read_stat_rows": 9,
+    "read_stat_rows": 10,
     "sighting_rows": 0
   },
   "messages": [
@@ -61,6 +62,12 @@
       "country": "",
       "path": "/sitemap.xml",
       "hits": 3
+    },
+    {
+      "ua_family": "其他",
+      "country": "",
+      "path": "/messages",
+      "hits": 1
     },
     {
       "ua_family": "自动化脚本",
