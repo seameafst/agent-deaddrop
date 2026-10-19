@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS messages (
     links TEXT,
     embedding TEXT,
     nn_embedding TEXT,
+    reply_to INTEGER,
     content_hash TEXT NOT NULL UNIQUE
 );
 CREATE TABLE IF NOT EXISTS nonces (
@@ -163,6 +164,7 @@ class BaseStorage:
         embedding: Optional[str],
         nn_embedding: Optional[str],
         content_hash_value: str,
+        reply_to: Optional[int] = None,
     ) -> dict:
         raise NotImplementedError
 
@@ -281,11 +283,19 @@ class SQLiteStorage(BaseStorage):
         with self._lock:
             self._conn.executescript(SCHEMA)
             self._conn.commit()
+            # 轻量迁移：旧库补 reply_to 列（新库由 SCHEMA 直接带）
+            try:
+                cols = {r[1] for r in self._conn.execute("PRAGMA table_info(messages)").fetchall()}
+                if "reply_to" not in cols:
+                    self._conn.execute("ALTER TABLE messages ADD COLUMN reply_to INTEGER")
+                    self._conn.commit()
+            except sqlite3.Error:
+                pass
 
     def list_messages(self, limit: int = 50) -> List[dict]:
         with self._lock:
             rows = self._conn.execute(
-                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links"
+                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links, reply_to"
                 " FROM messages ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -324,13 +334,14 @@ class SQLiteStorage(BaseStorage):
         embedding: Optional[str],
         nn_embedding: Optional[str],
         content_hash_value: str,
+        reply_to: Optional[int] = None,
     ) -> dict:
         created_at = _now()
         try:
             with self._lock:
                 cur = self._conn.execute(
-                    "INSERT INTO messages (created_at, content, signature, public_key, sig, verified, sketch, nonce, links, embedding, nn_embedding, content_hash)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO messages (created_at, content, signature, public_key, sig, verified, sketch, nonce, links, embedding, nn_embedding, reply_to, content_hash)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         created_at,
                         content,
@@ -343,6 +354,7 @@ class SQLiteStorage(BaseStorage):
                         _dumps_links(links),
                         embedding,
                         nn_embedding,
+                        reply_to,
                         content_hash_value,
                     ),
                 )
@@ -360,6 +372,7 @@ class SQLiteStorage(BaseStorage):
             "nonce": nonce,
             "links": links or [],
             "verified": bool(verified),
+            "reply_to": reply_to,
         }
 
     def delete_message(self, msg_id: int) -> bool:
@@ -703,6 +716,7 @@ class SupabaseStorage(BaseStorage):
         embedding: Optional[str],
         nn_embedding: Optional[str],
         content_hash_value: str,
+        reply_to: Optional[int] = None,
     ) -> dict:
         try:
             res = (
@@ -719,6 +733,7 @@ class SupabaseStorage(BaseStorage):
                         "links": _dumps_links(links),
                         "embedding": embedding,
                         "nn_embedding": nn_embedding,
+                        "reply_to": reply_to,
                         "content_hash": content_hash_value,
                     }
                 )
