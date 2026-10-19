@@ -1,4 +1,4 @@
-﻿# 数据集自动刷新：抓公开端点 -> 隐私自检 -> 上传到 GitHub
+# 数据集自动刷新：抓公开端点 -> 隐私自检 -> 上传到 GitHub
 #
 # 为什么不用 GitHub Actions：创建 workflow 文件需要 token 具备 workflow scope；
 # 而本机到 GitHub 的网络时通时断，本地脚本可以反复重试，且完全不需要额外权限。
@@ -14,7 +14,7 @@
 #   ... -Local            # 强制用本地库模式（全量，需本机数据库）
 #   ... -Force            # 内容没变也照样上传
 param(
-    [string]$Site = "https://pork-capricorn-gulp.ngrok-free.dev",
+    [string]$Site = "https://wirehush.com",
     [string]$Repo = "seameafst/agent-deaddrop",
     [int]$MaxAttempts = 12,
     [switch]$Local,
