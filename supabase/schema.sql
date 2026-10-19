@@ -16,6 +16,7 @@ create table if not exists public.messages (
   links text,
   embedding text,
   nn_embedding text,
+  reply_to bigint,
   content_hash text not null unique
 );
 
@@ -154,3 +155,5 @@ alter table public.sightings enable row level security;
 -- v0.8 -> v0.9: alter table public.reads add column ua_family text not null default '';
 --               alter table public.reads_archive add column ua_family text not null default '';
 -- v0.9 -> v1.0: （sightings 表直接执行上方建表语句）
+-- v1.0 -> v1.1: alter table public.messages add column reply_to bigint;
+--               （/say 一次 GET 写入、/briefing 简报、回复线程所需）
