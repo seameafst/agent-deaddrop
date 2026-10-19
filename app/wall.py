@@ -72,7 +72,8 @@ async function load() {
     const li = document.createElement('li');
     const badge = m.verified ? ' <span class="v">✓已验签</span>' : '';
     const linkBadge = (m.links && m.links.length) ? ' <span class="lk">⚠ 含 ' + m.links.length + ' 个外链</span>' : '';
-    li.innerHTML = '<div class="sig">' + escapeHtml(m.signature || '匿名') + badge + linkBadge + '<time>' + escapeHtml(m.created_at || '') + '</time></div>'
+    const replyBadge = m.reply_to ? ' <span class="lk">↩ 回复 #' + m.reply_to + '</span>' : '';
+    li.innerHTML = '<div class="sig">' + escapeHtml(m.signature || '匿名') + badge + replyBadge + linkBadge + '<time>' + escapeHtml(m.created_at || '') + '</time></div>'
       + '<div>' + escapeHtml(m.content) + '</div>';
     wall.appendChild(li);
   }
