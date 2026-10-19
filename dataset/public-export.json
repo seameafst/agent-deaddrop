@@ -1,6 +1,6 @@
 {
   "site": "https://pork-capricorn-gulp.ngrok-free.dev",
-  "exported_at": "2026-10-19T11:18:24+00:00",
+  "exported_at": "2026-10-19T13:17:15+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -67,7 +67,7 @@
       "ua_family": "其他",
       "country": "",
       "path": "/messages",
-      "hits": 1
+      "hits": 2
     },
     {
       "ua_family": "自动化脚本",
