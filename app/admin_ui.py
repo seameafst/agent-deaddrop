@@ -114,7 +114,8 @@ async function loadAll() {
     if (r.bot_verdict) {
       const v = document.createElement('td');
       v.textContent = r.bot_verdict;
-      v.style.color = r.bot_verified ? '#1a7f37' : '#9a6700';
+      v.style.color = r.spoof_suspect ? '#c8102e' : (r.bot_verified ? '#1a7f37' : '#9a6700');
+      if (r.spoof_suspect) { v.style.fontWeight = 'bold'; v.style.background = '#fff1f0'; }
       tr.appendChild(v);
     } else {
       tr.appendChild(cell(''));
@@ -167,7 +168,8 @@ async function loadAll() {
     tr.appendChild(cell(s.ua_family || '-'));
     const vd = document.createElement('td');
     vd.textContent = s.bot_verdict || '';
-    vd.style.color = s.bot_verified ? '#1a7f37' : '#9a6700';
+    vd.style.color = s.spoof_suspect ? '#c8102e' : (s.bot_verified ? '#1a7f37' : '#9a6700');
+    if (s.spoof_suspect) { vd.style.fontWeight = 'bold'; vd.style.background = '#fff1f0'; }
     tr.appendChild(vd);
     st.appendChild(tr);
     if (s.user_agent) {
