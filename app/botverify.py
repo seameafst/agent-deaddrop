@@ -52,23 +52,44 @@ def verify(family: str, asn: str) -> Tuple[bool, str]:
 
 
 def verdict_text(family: str, asn: str) -> str:
-    """给管理端展示的一行判定：已验证 / 未验证（附 ASN）。"""
+    """给管理端展示的一行判定：已验证 / 疑似冒充 / 未验证。"""
     ok, label = verify(family, asn)
     if ok:
         return f"✅ 已验证 {label}"
     if (family or "") in RULES:
-        return "⚠️ 未验证（ASN 不匹配，UA 可能伪造）"
+        num = _asn_number(asn)
+        if num:
+            return f"🚨 疑似冒充 {label}（AS{num} 不在官方网段）"
+        return "⚠️ 未验证（缺少 ASN 信息）"
     return ""
 
 
+def spoof_suspect(family: str, asn: str) -> bool:
+    """声称是已知爬虫家族，但来源 ASN 不在其官方网段 —— 疑似伪造 UA。
+
+    没有 ASN 信息时返回 False（不下没有证据的结论）。
+    """
+    rule = RULES.get(family or "")
+    if not rule:
+        return False
+    num = _asn_number(asn)
+    if not num:
+        return False
+    allowed, _ = rule
+    return num not in allowed
+
+
 def annotate(rows):
-    """给一组记录批量补上 bot_verified / bot_verdict 字段。"""
+    """给一组记录批量补上 bot_verified / bot_label / bot_verdict / spoof_suspect。"""
     out = []
     for r in rows:
         d = dict(r)
-        ok, label = verify(d.get("ua_family") or "", d.get("asn") or "")
+        fam = d.get("ua_family") or ""
+        asn = d.get("asn") or ""
+        ok, label = verify(fam, asn)
         d["bot_verified"] = ok
         d["bot_label"] = label
-        d["bot_verdict"] = verdict_text(d.get("ua_family") or "", d.get("asn") or "")
+        d["spoof_suspect"] = spoof_suspect(fam, asn)
+        d["bot_verdict"] = verdict_text(fam, asn)
         out.append(d)
     return out
