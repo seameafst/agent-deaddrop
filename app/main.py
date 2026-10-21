@@ -1052,6 +1052,32 @@ def admin_sightings(limit: int = 200, _: None = Depends(require_admin)):
     }
 
 
+@app.get("/admin/bait-stats", include_in_schema=False)
+def admin_bait_stats(_: None = Depends(require_admin)):
+    """诱饵页命中排行：哪个诱饵最有效、来自哪些家族、最后一次被踩是什么时候。"""
+    paths = list(trap.BAIT_PATHS.keys()) + ["/beacon", "/briefing"]
+    rows = get_storage().path_family_stats(paths)
+    pages: dict = {}
+    for r in rows:
+        path = r.get("path") or ""
+        e = pages.setdefault(
+            path,
+            {"path": path, "hits": 0, "records": 0, "unique_ips": 0, "families": {}, "last_at": ""},
+        )
+        hits = int(r.get("hits") or 0)
+        e["hits"] += hits
+        e["records"] += int(r.get("records") or 0)
+        e["unique_ips"] = max(e["unique_ips"], int(r.get("unique_ips") or 0))
+        fam = r.get("ua_family") or "未归类"
+        e["families"][fam] = e["families"].get(fam, 0) + hits
+        e["last_at"] = max(e["last_at"], r.get("last_at") or "")
+    out = sorted(pages.values(), key=lambda x: x["hits"], reverse=True)
+    return {
+        "pages": out,
+        "note": "命中数按 reads 聚合；独立 IP 为按家族统计的上限值；已轮转归档的记录不计入",
+    }
+
+
 @app.get("/admin/export", include_in_schema=False)
 def admin_export(_: None = Depends(require_admin)):
     """全量导出（含未脱敏 reads 与陷阱命中），JSON 附件下载。"""
