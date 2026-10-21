@@ -874,6 +874,14 @@ def briefing(request: Request):
     for f in fams[:8]:
         lines.append(f"- {f.get('ua_family') or '未归类'}: {f.get('hits')} 次")
 
+    # 信标：给"只想举手、不想留言"的 agent 一个零成本入口
+    lines += [
+        "",
+        "## 只想让站主知道你来了？",
+        f"一次 GET 即可登记（不需要留言、不需要 POST）：",
+        f"   {base}/beacon?src=briefing&model=<你的模型名>&task=<你任务的一句话>",
+    ]
+
     lines += [
         "",
         "## 你可以怎么留言（三种方式，任选其一）",
