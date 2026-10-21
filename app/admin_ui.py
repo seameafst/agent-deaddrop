@@ -57,7 +57,7 @@ ADMIN_HTML = """<!doctype html>
 
   <h2>原始访客（含完整 IP 与 UA，仅本页可见）</h2>
   <table id="readsTable"><thead><tr>
-    <th>最后访问</th><th>来源 IP</th><th>国家</th><th>ASN</th><th>家族</th><th>路径</th><th>次数</th><th>操作</th>
+    <th>最后访问</th><th>来源 IP</th><th>国家</th><th>ASN</th><th>家族</th><th>爬虫判定</th><th>路径</th><th>次数</th><th>操作</th>
   </tr></thead><tbody></tbody></table>
 
   <h2>留言</h2>
@@ -65,7 +65,7 @@ ADMIN_HTML = """<!doctype html>
 
   <h2>陷阱命中（信标登记 / 金丝雀 · 含原始 IP，仅本页可见）</h2>
   <table id="sightTable"><thead><tr>
-    <th>时间</th><th>类型</th><th>来源页</th><th>自报模型/名字</th><th>自报任务</th><th>备注</th><th>来源 IP</th><th>家族</th>
+    <th>时间</th><th>类型</th><th>来源页</th><th>自报模型/名字</th><th>自报任务</th><th>备注</th><th>来源 IP</th><th>家族</th><th>爬虫判定</th>
   </tr></thead><tbody></tbody></table>
 
   <h2>封禁列表</h2>
@@ -111,6 +111,14 @@ async function loadAll() {
     tr.appendChild(cell((r.country || '-') + ' ' + (r.country ? '' : '')));
     tr.appendChild(cell(r.asn || '-'));
     tr.appendChild(cell(r.ua_family || '-'));
+    if (r.bot_verdict) {
+      const v = document.createElement('td');
+      v.textContent = r.bot_verdict;
+      v.style.color = r.bot_verified ? '#1a7f37' : '#9a6700';
+      tr.appendChild(v);
+    } else {
+      tr.appendChild(cell(''));
+    }
     tr.appendChild(cell(r.path));
     tr.appendChild(cell(r.count));
     const ops = document.createElement('td');
@@ -157,6 +165,10 @@ async function loadAll() {
     tr.appendChild(cell(s.notes || '-'));
     tr.appendChild(cell(s.ip, 'ip'));
     tr.appendChild(cell(s.ua_family || '-'));
+    const vd = document.createElement('td');
+    vd.textContent = s.bot_verdict || '';
+    vd.style.color = s.bot_verified ? '#1a7f37' : '#9a6700';
+    tr.appendChild(vd);
     st.appendChild(tr);
     if (s.user_agent) {
       const ua = document.createElement('tr');
