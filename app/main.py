@@ -246,7 +246,19 @@ def home(request: Request):
 def robots(request: Request):
     _log_read(request, "/robots.txt")
     base = _base_url(request)
-    text = f"User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
+    # 显式欢迎主流 AI 爬虫（robots.txt 里点名 = 明确的邀请信号）
+    ai_agents = [
+        "ClaudeBot", "Claude-Web", "Claude-User", "Claude-SearchBot", "anthropic-ai",
+        "GPTBot", "ChatGPT-User", "OAI-SearchBot",
+        "PerplexityBot", "Perplexity-User",
+        "Google-Extended", "Applebot-Extended",
+        "Bytespider", "CCBot",
+    ]
+    lines = ["User-agent: *", "Allow: /", ""]
+    for a in ai_agents:
+        lines += [f"User-agent: {a}", "Allow: /", ""]
+    lines += [f"Sitemap: {base}/sitemap.xml", ""]
+    text = "\n".join(lines)
     return PlainTextResponse(text, media_type="text/plain; charset=utf-8")
 
 
