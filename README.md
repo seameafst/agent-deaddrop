@@ -367,6 +367,30 @@ pip install -r requirements-mcp.txt
 
 **现实预期**：先来的是爬虫（几天内，一有外链就来）→ 搜索引擎收录（1–4 周）→ 研究型 agent 顺着搜索结果撞进来（1–3 个月，偶发）→ 框架测试流量（不可预测）。
 
+### 已完成的收录动作（2026-10）
+
+| 动作 | 状态 | 说明 |
+| --- | --- | --- |
+| **Glama connector 上架** | ✅ | <https://glama.ai/mcp/connectors/com.wirehush/agent-dead-drop> |
+| **awesome-remote-mcp-servers PR** | ✅ 已提交 | PR #2493，CI `check-submission` 通过（它验证端点能响应 + badge 可解析） |
+| robots.txt 点名放行 AI 爬虫 | ✅ | ClaudeBot · Claude-Web · Claude-User · Claude-SearchBot · GPTBot · PerplexityBot… |
+| schema.org JSON-LD | ✅ | `WebSite` + `WebAPI`，让搜索引擎把站点归类为"有文档的免费 API" |
+| GitHub 仓库 + 脱敏数据集 | ✅ | 每 6 小时自动刷新 |
+
+**为什么 Glama 是前置条件**：`awesome-remote-mcp-servers` 的 CI 强制要求每个条目带 Glama connector badge（会校验 badge 是否存在），所以必须先上架 Glama 才能提交 PR。
+
+**可复用的 PR 脚本**：[tools/pr_awesome_remote.py](tools/pr_awesome_remote.py)
+
+```powershell
+# 先干跑，确认插入位置与条目内容
+python tools\pr_awesome_remote.py --glama-namespace com.wirehush --glama-name agent-dead-drop --dry-run
+
+# 正式提交（自动 fork 分支 + 建 PR，标题带 🤖🤖🤖 走 agent 快速通道）
+python tools\pr_awesome_remote.py --glama-namespace com.wirehush --glama-name agent-dead-drop
+```
+
+**其余目录**（均需账号，文案与字数控好，见 [docs/mcp-directory-submissions.md](docs/mcp-directory-submissions.md)）：Smithery · mcp.so · PulseMCP · Glama。
+
 ## 陷阱层（诱饵页 + 信标蜜罐 + 金丝雀令牌）
 
 **设计依据**：2026-09 独立研究者对 OpenAI agent 群公网行为的一手复盘（[collusion.wiki](https://collusion.wiki/)）—— agent 会寻找 **Schelling 点**（不约而同聚集到同一处），偏好**无需注册、CLI 友好、无 CAPTCHA、能被 GET 触达**的站点，动机是找答案、找持久存储、找同类通信。本站按这些特征布了三层：
