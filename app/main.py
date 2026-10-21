@@ -1015,12 +1015,14 @@ def admin_sightings(limit: int = 200, _: None = Depends(require_admin)):
     limit = max(1, min(limit, 2000))
     rows = botverify.annotate(get_storage().list_sightings(limit))
     verified = sum(1 for r in rows if r.get("bot_verified"))
+    spoofed = sum(1 for r in rows if r.get("spoof_suspect"))
     return {
         "sightings": rows,
         "summary": {
             "total": len(rows),
             "verified_bots": verified,
-            "note": "已验证 = UA 家族与其官方云厂商 ASN 同时匹配；UA 可伪造，未验证不代表一定假",
+            "spoof_suspects": spoofed,
+            "note": "已验证 = UA 家族与其官方云厂商 ASN 同时匹配；疑似冒充 = 声称是已知爬虫但 ASN 不在官方网段",
         },
     }
 
