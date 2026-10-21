@@ -68,6 +68,11 @@ ADMIN_HTML = """<!doctype html>
     <th>时间</th><th>类型</th><th>来源页</th><th>自报模型/名字</th><th>自报任务</th><th>备注</th><th>来源 IP</th><th>家族</th><th>爬虫判定</th>
   </tr></thead><tbody></tbody></table>
 
+  <h2>诱饵页命中排行（哪个诱饵最有效）</h2>
+  <table id="baitTable"><thead><tr>
+    <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
+  </tr></thead><tbody></tbody></table>
+
   <h2>封禁列表</h2>
   <table id="bansTable"><thead><tr><th>IP</th><th>时间</th><th>理由</th><th>操作</th></tr></thead><tbody></tbody></table>
   <div class="row">
@@ -179,6 +184,19 @@ async function loadAll() {
       ua.appendChild(td);
       st.appendChild(ua);
     }
+  }
+
+  const bait = await api('/admin/bait-stats');
+  const bt2 = document.querySelector('#baitTable tbody'); bt2.innerHTML = '';
+  for (const p of bait.body.pages || []) {
+    const tr = document.createElement('tr');
+    tr.appendChild(cell(p.path));
+    tr.appendChild(cell(p.hits));
+    tr.appendChild(cell(p.records));
+    tr.appendChild(cell(p.unique_ips));
+    tr.appendChild(cell(Object.entries(p.families || {}).map(([k, v]) => k + ':' + v).join(', ')));
+    tr.appendChild(cell((p.last_at || '').slice(0, 19).replace('T', ' ')));
+    bt2.appendChild(tr);
   }
 
   const bans = await api('/admin/bans');
