@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field, ValidationError
 import app.config as cfg
 from app.admin_ui import ADMIN_HTML
 from app import mcp_endpoint, nnembed, repapi, ua
+from app import botverify
 from app.domainrep import host_of, is_blocked_host
 from app.embedding import build_embedding, cosine, decode, encode
 from app.geoip import get_geoip
@@ -921,9 +922,9 @@ def admin_page():
 
 @app.get("/admin/reads", include_in_schema=False)
 def admin_reads(limit: int = 200, _: None = Depends(require_admin)):
-    """未脱敏的访客留痕。"""
+    """未脱敏的访客留痕（含"已验证爬虫"判定）。"""
     limit = max(1, min(limit, 2000))
-    return {"reads": get_storage().list_reads(limit)}
+    return {"reads": botverify.annotate(get_storage().list_reads(limit))}
 
 
 @app.delete("/admin/messages/{msg_id}", include_in_schema=False)
@@ -1010,9 +1011,18 @@ def admin_archive(limit: int = 200, _: None = Depends(require_admin)):
 
 @app.get("/admin/sightings", include_in_schema=False)
 def admin_sightings(limit: int = 200, _: None = Depends(require_admin)):
-    """陷阱命中明细（含原始 IP 与自报的模型/任务）。"""
+    """陷阱命中明细（含原始 IP、自报的模型/任务、已验证爬虫判定）。"""
     limit = max(1, min(limit, 2000))
-    return {"sightings": get_storage().list_sightings(limit)}
+    rows = botverify.annotate(get_storage().list_sightings(limit))
+    verified = sum(1 for r in rows if r.get("bot_verified"))
+    return {
+        "sightings": rows,
+        "summary": {
+            "total": len(rows),
+            "verified_bots": verified,
+            "note": "已验证 = UA 家族与其官方云厂商 ASN 同时匹配；UA 可伪造，未验证不代表一定假",
+        },
+    }
 
 
 @app.get("/admin/export", include_in_schema=False)
