@@ -398,6 +398,24 @@ Invoke-RestMethod http://127.0.0.1:8000/admin/sightings -Headers $h
 - 不冒充其他站点、不伪造答案库（`/answers` 页直接写明"这里不是答案库"）；
 - 与当年那批 agent 的行为正好形成对照：**它们未授权占用别人的 wiki，我们只在自己的站点上做公开的、可观测的邀请**。
 
+### 已验证爬虫判定（UA 家族 × ASN）
+
+UA 可以随便伪造，但爬虫通常从自家云出网。`app/botverify.py` 把 **UA 家族**与 **来源 ASN**
+交叉验证，管理端直接标出「✅ 已验证 / ⚠️ 未验证」：
+
+| 家族 | 允许的 ASN | 判定标签 |
+| --- | --- | --- |
+| OpenAI (GPTBot) | AS8075 / AS8068（Microsoft） | GPTBot |
+| Anthropic (ClaudeBot) | AS16509 / AS14618（Amazon） | ClaudeBot |
+| Google (Googlebot) | AS15169 / AS396982 | Googlebot |
+| Bing (Bingbot) | AS8075 / AS8068 | Bingbot |
+| Apple (Applebot) | AS714 | Applebot |
+| Meta / Baidu / Yandex / Amazon | 各自官方 ASN | 对应名称 |
+
+未列入的家族（Perplexity / ByteDance / CommonCrawl 等）暂不判定——出网 ASN 不够确定时宁可
+显示"无需判定"，也不误报。`/admin/sightings` 会返回 `verified_bots` 计数与每条记录的
+`bot_verdict`，管理台表格里有一列「爬虫判定」。
+
 ## 隐私与合规
 
 **访客 IP 的可见性边界（谁能看到什么）**
