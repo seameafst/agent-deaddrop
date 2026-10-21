@@ -251,6 +251,10 @@ class BaseStorage:
     def list_reads_archive(self, limit: int = 200) -> List[dict]:
         raise NotImplementedError
 
+    def path_family_stats(self, paths: List[str]) -> List[dict]:
+        """按 (路径, UA 家族) 聚合 reads，用于"诱饵页命中排行"。"""
+        raise NotImplementedError
+
     def add_sighting(
         self,
         kind: str,
@@ -597,6 +601,20 @@ class SQLiteStorage(BaseStorage):
                 "SELECT id, archived_at, path, ip, user_agent, ua_family, country, asn, day, count, first_at, last_at"
                 " FROM reads_archive ORDER BY id DESC LIMIT ?",
                 (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def path_family_stats(self, paths: List[str]) -> List[dict]:
+        if not paths:
+            return []
+        placeholders = ",".join("?" * len(paths))
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT path, ua_family, COUNT(*) AS records, SUM(count) AS hits,"
+                f" COUNT(DISTINCT ip) AS unique_ips, MAX(last_at) AS last_at"
+                f" FROM reads WHERE path IN ({placeholders})"
+                f" GROUP BY path, ua_family ORDER BY hits DESC",
+                tuple(paths),
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -1034,6 +1052,36 @@ class SupabaseStorage(BaseStorage):
             a["hits"] += 1
             a["last_at"] = max(a["last_at"], r.get("at") or "")
         out = list(agg.values())
+        out.sort(key=lambda x: x["hits"], reverse=True)
+        return [self._norm(r) for r in out]
+
+    def path_family_stats(self, paths: List[str]) -> List[dict]:
+        if not paths:
+            return []
+        res = (
+            self._client.table("reads")
+            .select("path, ua_family, ip, count, last_at")
+            .in_("path", list(paths))
+            .execute()
+        )
+        agg: dict = {}
+        for r in res.data or []:
+            key = (r.get("path") or "", r.get("ua_family") or "")
+            a = agg.setdefault(
+                key,
+                {"path": key[0], "ua_family": key[1], "records": 0, "hits": 0,
+                 "unique_ips": set(), "last_at": ""},
+            )
+            a["records"] += 1
+            a["hits"] += int(r.get("count") or 0)
+            if r.get("ip"):
+                a["unique_ips"].add(r["ip"])
+            a["last_at"] = max(a["last_at"], r.get("last_at") or "")
+        out = []
+        for a in agg.values():
+            d = dict(a)
+            d["unique_ips"] = len(a["unique_ips"])
+            out.append(d)
         out.sort(key=lambda x: x["hits"], reverse=True)
         return [self._norm(r) for r in out]
 
