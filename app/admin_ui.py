@@ -54,6 +54,7 @@ ADMIN_HTML = """<!doctype html>
     <button id="logout" class="ghost">退出</button>
     <span id="msg" class="meta"></span>
   </div>
+  <p id="dsStatus" class="meta">数据集状态：加载中…</p>
 
   <h2>原始访客（含完整 IP 与 UA，仅本页可见）</h2>
   <table id="readsTable"><thead><tr>
@@ -107,6 +108,30 @@ async function loadAll() {
   const reads = await api('/admin/reads?limit=200');
   if (reads.status === 401 || reads.status === 403) { say('凭证无效或 TOTP 过期，请重新进入', true); showLogin(); return; }
   if (reads.status !== 200) { say('读取失败：HTTP ' + reads.status, true); return; }
+
+  // 数据集新鲜度（远端 GitHub 数据集 + 最近一次 Actions 运行）
+  try {
+    const ds = await api('/admin/dataset-status');
+    const el = document.getElementById('dsStatus');
+    if (ds.status === 200 && ds.body.ok) {
+      const b = ds.body;
+      const ageTxt = (b.age_hours === null || b.age_hours === undefined) ? '未知' : (b.age_hours + ' 小时前');
+      const fresh = b.fresh ? '✅ 新鲜' : '⚠️ 已过期';
+      const act = b.actions
+        ? (b.actions.conclusion === 'success' ? '✅ 成功' : '❌ ' + (b.actions.conclusion || b.actions.status))
+        : '未知';
+      el.textContent = '数据集：' + fresh + ' · 上次导出 ' + ageTxt +
+        '（阈值 ' + b.threshold_hours + 'h） · Actions：' + act +
+        ' · 检查于 ' + (b.checked_at || '').slice(0, 19).replace('T', ' ');
+      el.style.color = b.fresh ? '#1a7f37' : '#c8102e';
+    } else {
+      el.textContent = '数据集状态：无法获取（' + ((ds.body && ds.body.error) || ('HTTP ' + ds.status)) + '）';
+      el.style.color = '#9a6700';
+    }
+  } catch (e) {
+    const el = document.getElementById('dsStatus');
+    if (el) { el.textContent = '数据集状态：检查失败'; el.style.color = '#9a6700'; }
+  }
 
   const rt = document.querySelector('#readsTable tbody'); rt.innerHTML = '';
   for (const r of reads.body.reads) {
