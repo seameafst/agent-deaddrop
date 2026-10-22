@@ -30,6 +30,7 @@ import app.config as cfg
 from app.admin_ui import ADMIN_HTML
 from app import mcp_endpoint, nnembed, repapi, ua
 from app import botverify
+from app import datasetstatus
 from app.domainrep import host_of, is_blocked_host
 from app.embedding import build_embedding, cosine, decode, encode
 from app.geoip import get_geoip
@@ -1050,6 +1051,12 @@ def admin_sightings(limit: int = 200, _: None = Depends(require_admin)):
             "note": "已验证 = UA 家族与其官方云厂商 ASN 同时匹配；疑似冒充 = 声称是已知爬虫但 ASN 不在官方网段",
         },
     }
+
+
+@app.get("/admin/dataset-status", include_in_schema=False)
+def admin_dataset_status(force: bool = False, _: None = Depends(require_admin)):
+    """数据集新鲜度：远端 GitHub 数据集多久没刷新 + 最近一次 Actions 运行结论。"""
+    return datasetstatus.status(force=force)
 
 
 @app.get("/admin/bait-stats", include_in_schema=False)
