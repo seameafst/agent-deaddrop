@@ -12,13 +12,33 @@ Set-Location $root
 $logFile = Join-Path $root "data\watchdog.log"
 $tokenFile = Join-Path $root "data\cloudflared-token.txt"
 $domainFile = Join-Path $root "data\cloudflared-domain.txt"
+$apiTokenFile = Join-Path $root "data\cloudflare-api-token.txt"
 $cfMode = Test-Path $tokenFile
+
+# 隧道的权威标识（不是密钥，可以硬编码）
+$CF_ACCOUNT = "4facc0af2b650c5ef206ca1a83e98cdb"
+$CF_TUNNEL = "c5ae7d2e-9061-4502-b4e4-85c34ceda5b3"
 
 function Write-Log([string]$msg) {
     $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
     $dir = Split-Path -Parent $logFile
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     Add-Content -Path $logFile -Value $line -Encoding UTF8
+}
+
+function Get-TunnelStatusApi {
+    """用 Cloudflare API 查隧道权威状态；返回 @{status=..;connections=..}，API 不可用返回 $null。"""
+    if (-not (Test-Path $apiTokenFile)) { return $null }
+    try {
+        $tok = (Get-Content $apiTokenFile -Raw).Trim()
+        $uri = "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/cfd_tunnel/$CF_TUNNEL"
+        $r = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $tok" } -TimeoutSec 20
+        $conns = 0
+        if ($r.result.connections) { $conns = @($r.result.connections).Count }
+        return @{ status = $r.result.status; connections = $conns }
+    } catch {
+        return $null
+    }
 }
 
 function Test-TunnelProcess {
@@ -105,20 +125,43 @@ $tunnelOk = Test-TunnelProcess
 $backend = if ($cfMode) { "cloudflared" } else { "ngrok" }
 
 if ($serviceOk -and $tunnelOk) {
-    # 2) cloudflared：进程在也要验证公网真的通
-    if ($cfMode -and -not (Test-PublicHealth)) {
-        if (-not (Test-Internet)) {
-            Write-Log "公网不可达，但本机外网也不通 —— 疑似本地网络问题，本轮不重启"
+    # 2) cloudflared：优先用 Cloudflare API 的权威状态判断（公网探测在本机常误报）
+    if ($cfMode) {
+        $api = Get-TunnelStatusApi
+        if ($null -ne $api) {
+            if ($api.status -ne "healthy" -or $api.connections -lt 1) {
+                Write-Log "API 报告隧道异常（status=$($api.status), conns=$($api.connections)）-> 重启 cloudflared"
+                if (-not (Restart-Cloudflared)) {
+                    Write-Log "cloudflared 重启失败"
+                    exit 1
+                }
+                Start-Sleep -Seconds 10
+                $api2 = Get-TunnelStatusApi
+                if ($null -ne $api2 -and $api2.status -eq "healthy" -and $api2.connections -ge 1) {
+                    Write-Log "重启后 API 报告 healthy（conns=$($api2.connections)）"
+                    exit 0
+                }
+                Write-Log "重启后 API 仍异常（status=$($api2.status), conns=$($api2.connections)），下次再试"
+                exit 1
+            }
+            # API 权威判定健康 —— 不再依赖公网探测，避免本机网络抖动引发频繁重启
             exit 0
         }
-        Write-Log "进程在但公网不可达（隧道连接掉线）-> 重启 cloudflared"
-        if (Restart-Cloudflared) {
-            if (Test-PublicHealth) { Write-Log "重启后公网恢复 OK"; exit 0 }
+
+        # API 不可用：退回公网探测，但只有"本机外网正常且站点确实不通"才重启
+        Write-Log "API 不可用，退回公网探测"
+        if (-not (Test-PublicHealth)) {
+            if (-not (Test-Internet)) {
+                Write-Log "本机外网也不通 —— 不重启（避免无意义重启）"
+                exit 0
+            }
+            Write-Log "公网探测失败且本机外网正常 -> 重启 cloudflared"
+            if (-not (Restart-Cloudflared)) { Write-Log "cloudflared 重启失败"; exit 1 }
+            if (Test-PublicHealth) { Write-Log "重启后公网恢复"; exit 0 }
             Write-Log "重启后公网仍不可达，下次再试"
             exit 1
         }
-        Write-Log "cloudflared 重启失败"
-        exit 1
+        exit 0
     }
     exit 0
 }
