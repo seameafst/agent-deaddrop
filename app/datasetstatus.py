@@ -9,10 +9,12 @@
 """
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 DATASET_URL = "https://raw.githubusercontent.com/seameafst/agent-deaddrop/main/dataset/public-export.json"
@@ -129,20 +131,53 @@ def status(force: bool = False) -> dict:
 
 
 _hist_cache = {"at": 0.0, "data": None}
+_refreshing = {"flag": False}
+LOCAL_DATASET = Path(__file__).resolve().parent.parent / "dataset" / "public-export.json"
 
 
-def history(days: int = 30) -> dict:
-    """从远端数据集的 history 字段取每日快照（趋势图用），缓存 10 分钟。"""
-    now = time.time()
-    if _hist_cache["data"] is not None and now - _hist_cache["at"] < 600:
-        cached = _hist_cache["data"]
-        return {"ok": True, "days": cached["days"], "entries": cached["entries"]}
+def _local_history():
+    """本地仓库里的数据集副本（有 history 就直接用，毫秒级）。"""
+    try:
+        if not LOCAL_DATASET.exists():
+            return None
+        ds = json.loads(LOCAL_DATASET.read_text(encoding="utf-8"))
+        items = [h for h in (ds.get("history") or []) if isinstance(h, dict)]
+        return items or None
+    except Exception:
+        return None
+
+
+def _refresh_remote_history():
+    """后台线程：从 GitHub 拉最新数据集，更新 history 缓存（不阻塞请求）。"""
     try:
         ds = _get_json(DATASET_URL)
         items = [h for h in (ds.get("history") or []) if isinstance(h, dict)]
-        items = items[-max(1, min(days, 365)):]
-        out = {"days": days, "entries": items}
-        _hist_cache.update(at=now, data=out)
-        return {"ok": True, **out}
-    except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": f"{type(exc).__name__}: {exc}", "entries": []}
+        if items:
+            _hist_cache.update(at=time.time(), data=items)
+    except Exception:
+        pass
+    finally:
+        _refreshing["flag"] = False
+
+
+def history(days: int = 30) -> dict:
+    """每日快照（趋势图用）。
+
+    策略：远端缓存（1 小时）> 本地仓库副本（毫秒级）> 后台线程刷新远端。
+    远端抓取很慢，所以永远不阻塞请求——先给能给的，下一次刷新再补最新。
+    """
+    days = max(1, min(int(days), 365))
+    now = time.time()
+    if _hist_cache["data"] is not None and now - _hist_cache["at"] < 3600:
+        return {"ok": True, "days": days, "entries": _hist_cache["data"][-days:], "source": "cache"}
+    if not _refreshing["flag"]:
+        _refreshing["flag"] = True
+        threading.Thread(target=_refresh_remote_history, daemon=True).start()
+    local = _local_history()
+    if local is not None:
+        return {"ok": True, "days": days, "entries": local[-days:], "source": "local"}
+    cached = _hist_cache["data"]
+    if cached:
+        return {"ok": True, "days": days, "entries": cached[-days:], "source": "stale-cache"}
+    return {"ok": True, "days": days, "entries": [], "source": "pending",
+            "note": "首次从远端拉取中，稍后刷新即可"}
