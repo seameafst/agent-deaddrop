@@ -33,9 +33,13 @@ function Get-TunnelStatusApi {
         $tok = (Get-Content $apiTokenFile -Raw).Trim()
         $uri = "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/cfd_tunnel/$CF_TUNNEL"
         $r = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $tok" } -TimeoutSec 20
+        # 响应可能 success=false 或 result 为空（限流/令牌问题）——此时状态"未知"，不能当成"异常"
+        if ($null -eq $r -or -not $r.success -or $null -eq $r.result -or -not $r.result.status) {
+            return $null
+        }
         $conns = 0
         if ($r.result.connections) { $conns = @($r.result.connections).Count }
-        return @{ status = $r.result.status; connections = $conns }
+        return @{ status = [string]$r.result.status; connections = $conns }
     } catch {
         return $null
     }
@@ -137,7 +141,11 @@ if ($serviceOk -and $tunnelOk) {
                 }
                 Start-Sleep -Seconds 10
                 $api2 = Get-TunnelStatusApi
-                if ($null -ne $api2 -and $api2.status -eq "healthy" -and $api2.connections -ge 1) {
+                if ($null -eq $api2) {
+                    Write-Log "重启后 API 不可达，无法判定（进程已拉起，下次再核）"
+                    exit 0
+                }
+                if ($api2.status -eq "healthy" -and $api2.connections -ge 1) {
                     Write-Log "重启后 API 报告 healthy（conns=$($api2.connections)）"
                     exit 0
                 }
@@ -148,20 +156,34 @@ if ($serviceOk -and $tunnelOk) {
             exit 0
         }
 
-        # API 不可用：退回公网探测，但只有"本机外网正常且站点确实不通"才重启
-        Write-Log "API 不可用，退回公网探测"
-        if (-not (Test-PublicHealth)) {
-            if (-not (Test-Internet)) {
-                Write-Log "本机外网也不通 —— 不重启（避免无意义重启）"
-                exit 0
-            }
-            Write-Log "公网探测失败且本机外网正常 -> 重启 cloudflared"
-            if (-not (Restart-Cloudflared)) { Write-Log "cloudflared 重启失败"; exit 1 }
-            if (Test-PublicHealth) { Write-Log "重启后公网恢复"; exit 0 }
-            Write-Log "重启后公网仍不可达，下次再试"
-            exit 1
+        # API 不可用：退回公网探测。本机到 Cloudflare 会间歇性 000/530，
+        # 单次失败不代表隧道坏了 —— 只有连续多次失败才重启，避免把好隧道弄坏。
+        $counterFile = Join-Path $root "data\watchdog-fail-count.txt"
+        if (Test-PublicHealth) {
+            if (Test-Path $counterFile) { Remove-Item $counterFile -Force -ErrorAction SilentlyContinue }
+            exit 0
         }
-        exit 0
+        if (-not (Test-Internet)) {
+            Write-Log "公网不可达且本机外网也不通 —— 疑似本地网络问题，不重启"
+            exit 0
+        }
+        $n = 0
+        if (Test-Path $counterFile) {
+            try { $n = [int]((Get-Content $counterFile -Raw).Trim()) } catch { $n = 0 }
+        }
+        $n = $n + 1
+        Set-Content -Path $counterFile -Value $n -Encoding ASCII
+        Write-Log "公网探测失败（连续第 $n 次，API 不可用）"
+        if ($n -lt 3) {
+            Write-Log "未到重启阈值（3 次），本轮先观察"
+            exit 0
+        }
+        Write-Log "连续 $n 次失败 -> 重启 cloudflared"
+        Remove-Item $counterFile -Force -ErrorAction SilentlyContinue
+        if (-not (Restart-Cloudflared)) { Write-Log "cloudflared 重启失败"; exit 1 }
+        if (Test-PublicHealth) { Write-Log "重启后公网恢复"; exit 0 }
+        Write-Log "重启后公网仍不可达，下次再试"
+        exit 1
     }
     exit 0
 }
