@@ -30,7 +30,14 @@ RULES = {
     "Meta": ({"32934"}, "Meta"),
     "Baidu": ({"38365"}, "Baiduspider"),
     "Yandex": ({"13238"}, "YandexBot"),
+    # 2026-10-22 实测观察到的出网 ASN（非官方公布，命中即视为来源一致）
+    "SERPstat": ({"24940"}, "SerpstatBot"),
+    "Fossick": ({"51167"}, "FossickBot"),
+    "InternetMeasurement": ({"211298"}, "InternetMeasurement"),
 }
+
+# 这些家族本身就是"伪造"的信号，不论 ASN 都判定为可疑
+FAKE_FAMILIES = {"伪造爬虫"}
 
 
 def _asn_number(asn: str) -> str:
@@ -52,7 +59,9 @@ def verify(family: str, asn: str) -> Tuple[bool, str]:
 
 
 def verdict_text(family: str, asn: str) -> str:
-    """给管理端展示的一行判定：已验证 / 疑似冒充 / 未验证。"""
+    """给管理端展示的一行判定：已验证 / 疑似冒充 / 伪造 / 未验证。"""
+    if (family or "") in FAKE_FAMILIES:
+        return "🚨 伪造 UA（示例域名 / 检查器伪装）"
     ok, label = verify(family, asn)
     if ok:
         return f"✅ 已验证 {label}"
@@ -69,6 +78,8 @@ def spoof_suspect(family: str, asn: str) -> bool:
 
     没有 ASN 信息时返回 False（不下没有证据的结论）。
     """
+    if (family or "") in FAKE_FAMILIES:
+        return True
     rule = RULES.get(family or "")
     if not rule:
         return False
