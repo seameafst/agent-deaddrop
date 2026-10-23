@@ -196,6 +196,48 @@ def build_public_export() -> dict:
     }
 
 
+def _daily_snapshot(data: dict) -> dict:
+    """把一次导出压成当日快照（只留聚合数字，约 500 字节）。"""
+    families: dict = {}
+    paths: dict = {}
+    for r in data.get("read_stats") or []:
+        hits = int(r.get("hits") or 0)
+        fam = r.get("ua_family") or "未归类"
+        families[fam] = families.get(fam, 0) + hits
+        p = r.get("path") or ""
+        if p:
+            paths[p] = paths.get(p, 0) + hits
+    exported = data.get("exported_at") or ""
+    return {
+        "date": exported[:10] if len(exported) >= 10 else "",
+        "total_hits": sum(families.values()),
+        "families": dict(sorted(families.items(), key=lambda kv: -kv[1])),
+        "top_paths": dict(sorted(paths.items(), key=lambda kv: -kv[1])[:15]),
+    }
+
+
+def _merge_history(data: dict, out_path: Path, keep_days: int = 90) -> list:
+    """把当日快照并入 history 列表（同一日期覆盖），只保留最近 keep_days 天。
+
+    这样不需要改工作流：现有提交步骤提交 public-export.json 时，
+    history 会一起进去，趋势图就能用历史数据。
+    """
+    prev = []
+    if out_path.exists():
+        try:
+            old = json.loads(out_path.read_text(encoding="utf-8"))
+            prev = [h for h in (old.get("history") or []) if isinstance(h, dict)]
+        except Exception:
+            prev = []
+    snap = _daily_snapshot(data)
+    if not snap.get("date"):
+        return prev
+    merged = {h.get("date"): h for h in prev if h.get("date")}
+    merged[snap["date"]] = snap
+    ordered = [merged[d] for d in sorted(merged)][-keep_days:]
+    return ordered
+
+
 def main():
     ap = argparse.ArgumentParser(description="脱敏公开导出（可用于公开发布）")
     ap.add_argument("--from-api", metavar="BASE_URL", help="只调用公开端点重建导出（云端可用，无依赖）")
@@ -211,15 +253,20 @@ def main():
         out_path = Path(args.out) if args.out else root / "data" / "public-export.json"
         data = build_public_export()
 
+    # 每日快照并入导出文件（趋势图用；不需要改工作流）
+    data["history"] = _merge_history(data, out_path)
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2 if args.pretty else None),
         encoding="utf-8",
     )
     size_kb = out_path.stat().st_size / 1024
+    hist = data.get("history") or []
     print(f"已导出（脱敏）-> {out_path}  ({size_kb:.1f} KB)  来源: {data['source']}")
     print(f"  留言 {data['counts']['messages']} 条 / 访问聚合 {data['counts']['read_stat_rows']} 行 / "
           f"陷阱命中 {data['counts']['sighting_rows']} 行")
+    print(f"  每日快照: {len(hist)} 天（最近 {hist[-1]['date'] if hist else '-'}）")
     print("  已移除：原始 IP、UA 原文、agent 自报任务与备注、封禁与审计日志")
     print("  发布前建议再自查一次：grep -E '([0-9]{1,3}\\.){3}[0-9]{1,3}' 该文件（应无命中）")
 
