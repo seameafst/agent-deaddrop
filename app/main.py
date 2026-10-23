@@ -1059,6 +1059,12 @@ def admin_dataset_status(force: bool = False, _: None = Depends(require_admin)):
     return datasetstatus.status(force=force)
 
 
+@app.get("/admin/trend", include_in_schema=False)
+def admin_trend(days: int = 30, _: None = Depends(require_admin)):
+    """每日趋势：远端数据集 history 字段里的每日汇总（GitHub Actions 每天写入）。"""
+    return datasetstatus.history(days=max(1, min(days, 365)))
+
+
 @app.get("/admin/traffic-mix", include_in_schema=False)
 def admin_traffic_mix(days: int = 30, _: None = Depends(require_admin)):
     """流量结构：近 N 天按 UA 家族的占比（AI 家族单独标记）。"""
