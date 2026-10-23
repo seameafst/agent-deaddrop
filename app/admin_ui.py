@@ -30,6 +30,13 @@ ADMIN_HTML = """<!doctype html>
   .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0; }
   .ok { color: #4ade80; } .err { color: #f87171; }
   code { background: #161a20; padding: .1rem .3rem; border-radius: 4px; }
+  .mix { display: flex; flex-direction: column; gap: .3rem; margin: .6rem 0; }
+  .mixrow { display: flex; align-items: center; gap: .5rem; font-size: .8rem; }
+  .mixlabel { width: 150px; flex: 0 0 150px; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mixbar { flex: 1; height: 14px; background: #161a20; border-radius: 4px; overflow: hidden; }
+  .mixfill { height: 100%; background: #3b5b8a; border-radius: 4px; }
+  .mixfill.ai { background: #2f9e6b; }
+  .mixpct { width: 120px; flex: 0 0 120px; text-align: right; color: #8b93a1; font-family: ui-monospace, monospace; }
 </style>
 </head>
 <body>
@@ -69,6 +76,12 @@ ADMIN_HTML = """<!doctype html>
     <th>时间</th><th>类型</th><th>来源页</th><th>自报模型/名字</th><th>自报任务</th><th>备注</th><th>来源 IP</th><th>家族</th><th>爬虫判定</th>
   </tr></thead><tbody></tbody></table>
 
+  <h2>流量结构（近 30 天 · 按 UA 家族）</h2>
+  <div id="mixChart" class="mix"></div>
+  <table id="mixTable"><thead><tr>
+    <th>家族</th><th>占比</th><th>命中</th><th>记录</th><th>独立 IP</th><th>最后访问</th>
+  </tr></thead><tbody></tbody></table>
+
   <h2>诱饵页命中排行（哪个诱饵最有效）</h2>
   <table id="baitTable"><thead><tr>
     <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
@@ -104,15 +117,11 @@ function say(text, isErr) { const el = document.getElementById('msg'); el.classN
 function cell(t, cls) { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = t == null ? '' : t; return td; }
 function btn(label, cls, fn) { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; return b; }
 
-async function loadAll() {
-  const reads = await api('/admin/reads?limit=200');
-  if (reads.status === 401 || reads.status === 403) { say('凭证无效或 TOTP 过期，请重新进入', true); showLogin(); return; }
-  if (reads.status !== 200) { say('读取失败：HTTP ' + reads.status, true); return; }
-
-  // 数据集新鲜度（远端 GitHub 数据集 + 最近一次 Actions 运行）
+async function loadDatasetStatus() {
+  // 单独加载：它要访问 GitHub，可能很慢，不能阻塞整页
+  const el = document.getElementById('dsStatus');
   try {
     const ds = await api('/admin/dataset-status');
-    const el = document.getElementById('dsStatus');
     if (ds.status === 200 && ds.body.ok) {
       const b = ds.body;
       const ageTxt = (b.age_hours === null || b.age_hours === undefined) ? '未知' : (b.age_hours + ' 小时前');
@@ -129,10 +138,16 @@ async function loadAll() {
       el.style.color = '#9a6700';
     }
   } catch (e) {
-    const el = document.getElementById('dsStatus');
     if (el) { el.textContent = '数据集状态：检查失败'; el.style.color = '#9a6700'; }
   }
+}
 
+async function loadAll() {
+  const reads = await api('/admin/reads?limit=200');
+  if (reads.status === 401 || reads.status === 403) { say('凭证无效或 TOTP 过期，请重新进入', true); showLogin(); return; }
+  if (reads.status !== 200) { say('读取失败：HTTP ' + reads.status, true); return; }
+
+  loadDatasetStatus();  // 不 await：慢的网络检查放后台
   const rt = document.querySelector('#readsTable tbody'); rt.innerHTML = '';
   for (const r of reads.body.reads) {
     const tr = document.createElement('tr');
@@ -182,6 +197,41 @@ async function loadAll() {
     }));
     tr.appendChild(ops);
     mt.appendChild(tr);
+  }
+
+  const mix = await api('/admin/traffic-mix?days=30');
+  const chart = document.querySelector('#mixChart');
+  const mixTb = document.querySelector('#mixTable tbody');
+  if (chart && mixTb && mix.status === 200) {
+    chart.innerHTML = ''; mixTb.innerHTML = '';
+    for (const f of (mix.body.families || [])) {
+      const row = document.createElement('div');
+      row.className = 'mixrow';
+      const label = document.createElement('span');
+      label.className = 'mixlabel';
+      label.textContent = (f.is_ai ? '⭐ ' : '') + f.family;
+      label.title = f.family + (f.is_ai ? '（AI 相关）' : '');
+      const bar = document.createElement('div');
+      bar.className = 'mixbar';
+      const fill = document.createElement('div');
+      fill.className = 'mixfill' + (f.is_ai ? ' ai' : '');
+      fill.style.width = Math.max(1, Math.min(100, f.share)) + '%';
+      bar.appendChild(fill);
+      const pct = document.createElement('span');
+      pct.className = 'mixpct';
+      pct.textContent = f.share + '% · ' + f.hits;
+      row.appendChild(label); row.appendChild(bar); row.appendChild(pct);
+      chart.appendChild(row);
+
+      const tr = document.createElement('tr');
+      tr.appendChild(cell((f.is_ai ? '⭐ ' : '') + f.family));
+      tr.appendChild(cell(f.share + '%'));
+      tr.appendChild(cell(f.hits));
+      tr.appendChild(cell(f.records));
+      tr.appendChild(cell(f.unique_ips));
+      tr.appendChild(cell((f.last_at || '').slice(0, 19).replace('T', ' ')));
+      mixTb.appendChild(tr);
+    }
   }
 
   const sight = await api('/admin/sightings?limit=100');
