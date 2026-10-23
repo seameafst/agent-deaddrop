@@ -82,6 +82,9 @@ ADMIN_HTML = """<!doctype html>
     <th>家族</th><th>占比</th><th>命中</th><th>记录</th><th>独立 IP</th><th>最后访问</th>
   </tr></thead><tbody></tbody></table>
 
+  <h2>每日趋势（每天总命中 · 由 GitHub Actions 写入）</h2>
+  <div id="trendChart" class="mix"></div>
+
   <h2>诱饵页命中排行（哪个诱饵最有效）</h2>
   <table id="baitTable"><thead><tr>
     <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
@@ -142,12 +145,44 @@ async function loadDatasetStatus() {
   }
 }
 
+async function loadTrend() {
+  const el = document.getElementById('trendChart');
+  if (!el) return;
+  try {
+    const r = await api('/admin/trend?days=30');
+    if (r.status !== 200 || !r.body.ok) {
+      el.textContent = '趋势数据不可用：' + ((r.body && r.body.error) || ('HTTP ' + r.status));
+      el.style.color = '#9a6700';
+      return;
+    }
+    const entries = r.body.entries || [];
+    el.innerHTML = '';
+    if (!entries.length) { el.textContent = '还没有快照记录（Actions 每天写入一条）'; return; }
+    const max = Math.max.apply(null, entries.map(e => e.total_hits || 0).concat([1]));
+    for (const e of entries) {
+      const row = document.createElement('div'); row.className = 'mixrow';
+      const label = document.createElement('span'); label.className = 'mixlabel'; label.textContent = e.date || '-';
+      const bar = document.createElement('div'); bar.className = 'mixbar';
+      const fill = document.createElement('div'); fill.className = 'mixfill';
+      fill.style.width = Math.max(1, Math.min(100, (e.total_hits || 0) * 100 / max)) + '%';
+      bar.appendChild(fill);
+      const pct = document.createElement('span'); pct.className = 'mixpct';
+      pct.textContent = (e.total_hits || 0) + ' 次';
+      row.appendChild(label); row.appendChild(bar); row.appendChild(pct);
+      el.appendChild(row);
+    }
+  } catch (e) {
+    if (el) { el.textContent = '趋势加载失败'; el.style.color = '#9a6700'; }
+  }
+}
+
 async function loadAll() {
   const reads = await api('/admin/reads?limit=200');
   if (reads.status === 401 || reads.status === 403) { say('凭证无效或 TOTP 过期，请重新进入', true); showLogin(); return; }
   if (reads.status !== 200) { say('读取失败：HTTP ' + reads.status, true); return; }
 
   loadDatasetStatus();  // 不 await：慢的网络检查放后台
+  loadTrend();          // 同上：趋势要读远端数据集
   const rt = document.querySelector('#readsTable tbody'); rt.innerHTML = '';
   for (const r of reads.body.reads) {
     const tr = document.createElement('tr');
