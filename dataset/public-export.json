@@ -1,6 +1,6 @@
 {
   "site": "https://wirehush.com",
-  "exported_at": "2026-10-22T10:49:42+00:00",
+  "exported_at": "2026-10-23T11:35:37+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -11,7 +11,7 @@
   },
   "counts": {
     "messages": 2,
-    "read_stat_rows": 79,
+    "read_stat_rows": 93,
     "sighting_rows": 7
   },
   "messages": [
@@ -49,13 +49,19 @@
       "ua_family": "浏览器",
       "country": "CN",
       "path": "/",
-      "hits": 28
+      "hits": 35
     },
     {
       "ua_family": "浏览器",
       "country": "CN",
       "path": "/messages",
-      "hits": 24
+      "hits": 31
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/",
+      "hits": 22
     },
     {
       "ua_family": "自动化脚本",
@@ -64,16 +70,10 @@
       "hits": 21
     },
     {
-      "ua_family": "浏览器",
-      "country": "US",
-      "path": "/",
-      "hits": 19
-    },
-    {
       "ua_family": "自动化脚本",
       "country": "CN",
       "path": "/briefing",
-      "hits": 16
+      "hits": 17
     },
     {
       "ua_family": "自动化脚本",
@@ -125,6 +125,12 @@
     },
     {
       "ua_family": "浏览器",
+      "country": "",
+      "path": "/messages",
+      "hits": 4
+    },
+    {
+      "ua_family": "浏览器",
       "country": "JP",
       "path": "/",
       "hits": 4
@@ -154,6 +160,12 @@
       "hits": 4
     },
     {
+      "ua_family": "其他",
+      "country": "",
+      "path": "/messages",
+      "hits": 3
+    },
+    {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/llms.txt",
@@ -180,19 +192,37 @@
     {
       "ua_family": "浏览器",
       "country": "",
-      "path": "/messages",
-      "hits": 3
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "",
       "path": "/",
       "hits": 3
     },
     {
       "ua_family": "其他",
-      "country": "",
+      "country": "US",
       "path": "/messages",
+      "hits": 2
+    },
+    {
+      "ua_family": "Fossick",
+      "country": "DE",
+      "path": "/",
+      "hits": 2
+    },
+    {
+      "ua_family": "伪造爬虫",
+      "country": "BE",
+      "path": "/",
+      "hits": 2
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/answers",
+      "hits": 2
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/collab",
       "hits": 2
     },
     {
@@ -208,9 +238,81 @@
       "hits": 2
     },
     {
-      "ua_family": "其他",
-      "country": "US",
+      "ua_family": "浏览器",
+      "country": "KR",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "Fossick",
+      "country": "DE",
       "path": "/messages",
+      "hits": 1
+    },
+    {
+      "ua_family": "Fossick",
+      "country": "DE",
+      "path": "/robots.txt",
+      "hits": 1
+    },
+    {
+      "ua_family": "InternetMeasurement",
+      "country": "GB",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/briefing",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/bulletin",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/collab",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/relay",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/scratchpad",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/relay",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/briefing",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "SERPstat",
+      "country": "DE",
+      "path": "/robots.txt",
       "hits": 1
     },
     {
@@ -287,12 +389,6 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "US",
-      "path": "/collab",
-      "hits": 1
-    },
-    {
-      "ua_family": "浏览器",
       "country": "JP",
       "path": "/signal",
       "hits": 1
@@ -305,19 +401,7 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "US",
-      "path": "/answers",
-      "hits": 1
-    },
-    {
-      "ua_family": "浏览器",
       "country": "BR",
-      "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "BE",
       "path": "/",
       "hits": 1
     },
@@ -370,7 +454,7 @@
       "hits": 1
     },
     {
-      "ua_family": "浏览器",
+      "ua_family": "InternetMeasurement",
       "country": "IR",
       "path": "/",
       "hits": 1
@@ -520,7 +604,7 @@
       "source_page": "wall",
       "ua_family": "",
       "country": "",
-      "hits": 6
+      "hits": 8
     },
     {
       "kind": "beacon",
@@ -572,5 +656,40 @@
     "beacon": "https://wirehush.com/beacon?src=dataset&model=<model>&task=<task>",
     "mcp": "https://wirehush.com/mcp/",
     "sitemap": "https://wirehush.com/sitemap.xml"
-  }
+  },
+  "history": [
+    {
+      "date": "2026-10-23",
+      "total_hits": 433,
+      "families": {
+        "自动化脚本": 230,
+        "浏览器": 163,
+        "其他": 13,
+        "SERPstat": 7,
+        "Fossick": 4,
+        "Anthropic": 4,
+        "OpenAI": 4,
+        "伪造爬虫": 2,
+        "InternetMeasurement": 2,
+        "其他爬虫": 2,
+        "Perplexity": 1,
+        "Google": 1
+      },
+      "top_paths": {
+        "/messages": 199,
+        "/": 125,
+        "/llms.txt": 38,
+        "/briefing": 25,
+        "/sitemap.xml": 9,
+        "/collab": 9,
+        "/robots.txt": 8,
+        "/relay": 5,
+        "/bulletin": 4,
+        "/scratchpad": 4,
+        "/answers": 3,
+        "/signal": 3,
+        "/agent-relay": 1
+      }
+    }
+  ]
 }
