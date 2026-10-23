@@ -255,6 +255,10 @@ class BaseStorage:
         """按 (路径, UA 家族) 聚合 reads，用于"诱饵页命中排行"。"""
         raise NotImplementedError
 
+    def family_stats(self, days: int = 30) -> List[dict]:
+        """按 UA 家族聚合 reads（近 N 天），用于"流量结构"图。"""
+        raise NotImplementedError
+
     def add_sighting(
         self,
         kind: str,
@@ -615,6 +619,20 @@ class SQLiteStorage(BaseStorage):
                 f" FROM reads WHERE path IN ({placeholders})"
                 f" GROUP BY path, ua_family ORDER BY hits DESC",
                 tuple(paths),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def family_stats(self, days: int = 30) -> List[dict]:
+        days = max(1, min(int(days), 365))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT COALESCE(NULLIF(ua_family, ''), '未归类') AS ua_family,"
+                " COUNT(*) AS records, SUM(count) AS hits,"
+                " COUNT(DISTINCT ip) AS unique_ips, MAX(last_at) AS last_at"
+                " FROM reads WHERE last_at >= ?"
+                " GROUP BY ua_family ORDER BY hits DESC",
+                (cutoff,),
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -1072,6 +1090,33 @@ class SupabaseStorage(BaseStorage):
                 {"path": key[0], "ua_family": key[1], "records": 0, "hits": 0,
                  "unique_ips": set(), "last_at": ""},
             )
+            a["records"] += 1
+            a["hits"] += int(r.get("count") or 0)
+            if r.get("ip"):
+                a["unique_ips"].add(r["ip"])
+            a["last_at"] = max(a["last_at"], r.get("last_at") or "")
+        out = []
+        for a in agg.values():
+            d = dict(a)
+            d["unique_ips"] = len(a["unique_ips"])
+            out.append(d)
+        out.sort(key=lambda x: x["hits"], reverse=True)
+        return [self._norm(r) for r in out]
+
+    def family_stats(self, days: int = 30) -> List[dict]:
+        days = max(1, min(int(days), 365))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        res = (
+            self._client.table("reads")
+            .select("ua_family, ip, count, last_at")
+            .gte("last_at", cutoff)
+            .execute()
+        )
+        agg: dict = {}
+        for r in res.data or []:
+            fam = r.get("ua_family") or "未归类"
+            a = agg.setdefault(fam, {"ua_family": fam, "records": 0, "hits": 0,
+                                     "unique_ips": set(), "last_at": ""})
             a["records"] += 1
             a["hits"] += int(r.get("count") or 0)
             if r.get("ip"):
