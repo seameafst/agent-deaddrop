@@ -126,3 +126,23 @@ def status(force: bool = False) -> dict:
         }
         _cache.update(at=now, data=None, error=out)
         return out
+
+
+_hist_cache = {"at": 0.0, "data": None}
+
+
+def history(days: int = 30) -> dict:
+    """从远端数据集的 history 字段取每日快照（趋势图用），缓存 10 分钟。"""
+    now = time.time()
+    if _hist_cache["data"] is not None and now - _hist_cache["at"] < 600:
+        cached = _hist_cache["data"]
+        return {"ok": True, "days": cached["days"], "entries": cached["entries"]}
+    try:
+        ds = _get_json(DATASET_URL)
+        items = [h for h in (ds.get("history") or []) if isinstance(h, dict)]
+        items = items[-max(1, min(days, 365)):]
+        out = {"days": days, "entries": items}
+        _hist_cache.update(at=now, data=out)
+        return {"ok": True, **out}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}", "entries": []}
