@@ -23,6 +23,11 @@ _RULES: Tuple[Tuple[str, str], ...] = (
     ("You.com", r"youbot"),
     ("Diffbot", r"diffbot"),
     ("AI2", r"ai2bot"),
+    # —— SEO / 测量类爬虫（2026-10-22 实测抓到，放在"其他爬虫"之前才能优先命中）
+    ("SERPstat", r"serpstatbot"),
+    ("Fossick", r"fossickbot"),
+    ("InternetMeasurement", r"internetmeasurement"),
+    ("伪造爬虫", r"cms-checker|example\.com"),
     ("其他爬虫", r"bot|crawler|spider|scrape|feedfetcher|monitor"),
     (
         "自动化脚本",
