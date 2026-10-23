@@ -1059,6 +1059,30 @@ def admin_dataset_status(force: bool = False, _: None = Depends(require_admin)):
     return datasetstatus.status(force=force)
 
 
+@app.get("/admin/traffic-mix", include_in_schema=False)
+def admin_traffic_mix(days: int = 30, _: None = Depends(require_admin)):
+    """流量结构：近 N 天按 UA 家族的占比（AI 家族单独标记）。"""
+    days = max(1, min(days, 365))
+    rows = get_storage().family_stats(days)
+    total = sum(int(r.get("hits") or 0) for r in rows) or 0
+    out = []
+    for r in rows:
+        fam = r.get("ua_family") or "未归类"
+        hits = int(r.get("hits") or 0)
+        out.append(
+            {
+                "family": fam,
+                "hits": hits,
+                "records": int(r.get("records") or 0),
+                "unique_ips": int(r.get("unique_ips") or 0),
+                "share": round(hits * 100.0 / total, 1) if total else 0.0,
+                "is_ai": ua.is_ai(fam),
+                "last_at": r.get("last_at") or "",
+            }
+        )
+    return {"days": days, "total_hits": total, "families": out}
+
+
 @app.get("/admin/bait-stats", include_in_schema=False)
 def admin_bait_stats(_: None = Depends(require_admin)):
     """诱饵页命中排行：哪个诱饵最有效、来自哪些家族、最后一次被踩是什么时候。"""
