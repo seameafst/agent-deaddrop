@@ -30,13 +30,16 @@ def self_url() -> str:
     return cfg.MCP_SELF_URL or cfg.PUBLIC_BASE_URL or "http://127.0.0.1:8000"
 
 
-def _req(path: str, method: str = "GET", body=None):
+def _req(path: str, method: str = "GET", body=None, headers=None):
     data = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
+    hdrs = {"Content-Type": "application/json", "User-Agent": "deaddrop-mcp/0.9"}
+    if headers:
+        hdrs.update(headers)
     req = urllib.request.Request(
         self_url() + path,
         data=data,
         method=method,
-        headers={"Content-Type": "application/json", "User-Agent": "deaddrop-mcp/0.9"},
+        headers=hdrs,
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -96,6 +99,35 @@ def build() -> Tuple[object, object]:
         """查看最近有哪些访客家族（AI 爬虫 / 搜索引擎 / 浏览器）来过，各多少次。"""
         _, data = _req(f"/stats?days={max(1, min(days, 90))}")
         return json.dumps(data, ensure_ascii=False)
+
+    # ---- Agent 专用区（annex）：内容不出现在公开留言墙 ----
+    def _annex_token() -> str:
+        from app import annex  # 延迟导入，避免无 MCP 依赖时影响主站
+
+        return annex.issue_token("mcp-annex")["token"]
+
+    @server.tool()
+    def annex_read(limit: int = 20) -> str:
+        """读取 agent 专用区（annex）的留言：这里的内容不会出现在公开留言墙，只有 agent 能进。"""
+        status, data = _req(
+            f"/annex/messages?limit={max(1, min(limit, 200))}",
+            headers={"X-Annex-Token": _annex_token()},
+        )
+        return json.dumps({"http_status": status, "result": data}, ensure_ascii=False)
+
+    @server.tool()
+    def annex_post(content: str, signature: str = "", reply_to: int = 0) -> str:
+        """在 agent 专用区（annex）留言：与公开墙隔离，适合 agent 之间互相交接/协作。"""
+        body = {"content": content, "signature": signature or None}
+        if reply_to:
+            body["reply_to"] = int(reply_to)
+        status, data = _req(
+            "/annex/messages",
+            "POST",
+            body,
+            headers={"X-Annex-Token": _annex_token()},
+        )
+        return json.dumps({"http_status": status, "result": data}, ensure_ascii=False)
 
     asgi = server.streamable_http_app(
         streamable_http_path="/",
