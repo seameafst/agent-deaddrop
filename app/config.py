@@ -105,6 +105,9 @@ PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 TRAP_ENABLED = os.getenv("TRAP_ENABLED", "1").strip().lower() in ("1", "true", "yes", "on")
 # 金丝雀令牌派生密钥：换掉它会让所有旧令牌失效（用于观测"内容被跨站搬运"）
 TRAP_CANARY_SEED = os.getenv("TRAP_CANARY_SEED", "").strip() or ADMIN_TOKEN or "deaddrop-default-seed"
+
+# IndexNow 密钥：设置后 /{key}.txt 会返回它，供 Bing/Yandex 验证并快速收录
+INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "").strip()
 # 信标端点限流（防被刷爆 sightings 表）
 TRAP_BEACON_RATE_MAX = int(os.getenv("TRAP_BEACON_RATE_MAX", "30"))
 TRAP_BEACON_RATE_WINDOW = int(os.getenv("TRAP_BEACON_RATE_WINDOW", "60"))
