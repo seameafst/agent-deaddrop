@@ -34,8 +34,8 @@ ADMIN_HTML = """<!doctype html>
   .mixrow { display: flex; align-items: center; gap: .5rem; font-size: .8rem; }
   .mixlabel { width: 150px; flex: 0 0 150px; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mixbar { flex: 1; height: 14px; background: #161a20; border-radius: 4px; overflow: hidden; }
-  .mixfill { height: 100%; background: #3b5b8a; border-radius: 4px; }
-  .mixfill.ai { background: #2f9e6b; }
+  .mixfill { height: 100%; background: #3b5b8a; border-radius: 4px; position: relative; }
+  .mixfill-ai { position: absolute; left: 0; top: 0; height: 100%; background: #2f9e6b; border-radius: 4px 0 0 4px; }
   .mixpct { width: 120px; flex: 0 0 120px; text-align: right; color: #8b93a1; font-family: ui-monospace, monospace; }
 </style>
 </head>
@@ -158,21 +158,34 @@ async function loadTrend() {
     const entries = r.body.entries || [];
     el.innerHTML = '';
     if (!entries.length) { el.textContent = '还没有快照记录（Actions 每天写入一条）'; return; }
-    // total_hits 是累计值，柱长用"比前一天涨了多少"（delta）；没有前一天的条目只作起点标记
+    // total_hits 是累计值，柱长用"比前一天涨了多少"（delta）；
+    // 绿色内嵌段表示其中属于 AI 家族（OpenAI/Anthropic/Perplexity/Google…）的部分
     const deltas = entries.map(e => (e.delta === null || e.delta === undefined) ? 0 : e.delta);
     const max = Math.max.apply(null, deltas.concat([1]));
     for (const e of entries) {
       const hasDelta = (e.delta !== null && e.delta !== undefined);
       const val = hasDelta ? e.delta : 0;
+      const aiVal = (e.ai_delta === null || e.ai_delta === undefined) ? 0 : e.ai_delta;
       const row = document.createElement('div'); row.className = 'mixrow';
       const label = document.createElement('span'); label.className = 'mixlabel'; label.textContent = e.date || '-';
       const bar = document.createElement('div'); bar.className = 'mixbar';
       const fill = document.createElement('div'); fill.className = 'mixfill';
       fill.style.width = (hasDelta ? Math.max(1, Math.min(100, val * 100 / max)) : 0) + '%';
+      if (aiVal > 0) {
+        const ai = document.createElement('div'); ai.className = 'mixfill-ai';
+        ai.style.width = Math.max(1, Math.min(100, aiVal * 100 / (val || 1))) + '%';
+        fill.appendChild(ai);
+      }
       bar.appendChild(fill);
       const pct = document.createElement('span'); pct.className = 'mixpct';
-      pct.textContent = hasDelta ? ('+' + e.delta + ' · 累计 ' + e.total_hits) : ('起点 · 累计 ' + e.total_hits);
-      pct.title = '当天新增 ' + (hasDelta ? e.delta : '-') + ' 次；累计 ' + e.total_hits + ' 次';
+      if (hasDelta) {
+        pct.textContent = '+' + e.delta + '（AI +' + aiVal + '） · 累计 ' + e.total_hits;
+      } else {
+        pct.textContent = '起点 · 累计 ' + e.total_hits;
+      }
+      pct.title = '当天新增 ' + (hasDelta ? e.delta : '-') + ' 次，其中 AI 家族 ' +
+        ((e.ai_delta === null || e.ai_delta === undefined) ? '-' : e.ai_delta) +
+        ' 次；累计 ' + e.total_hits + ' 次（AI 累计 ' + (e.ai_total == null ? '-' : e.ai_total) + '）';
       row.appendChild(label); row.appendChild(bar); row.appendChild(pct);
       el.appendChild(row);
     }
