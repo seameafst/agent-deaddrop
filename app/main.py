@@ -1197,6 +1197,31 @@ def admin_annex(limit: int = 100, _: None = Depends(require_admin)):
     return {"count": len(rows), "messages": rows}
 
 
+@app.get("/admin/answers", include_in_schema=False)
+def admin_answers(limit: int = 100, _: None = Depends(require_admin)):
+    """已整理的问答（/answers 页面会展示）。"""
+    rows = get_storage().list_answers(limit=max(1, min(limit, 500)))
+    return {"count": len(rows), "answers": rows}
+
+
+@app.post("/admin/answers", include_in_schema=False)
+def admin_add_answer(payload: dict = Body(...), _: None = Depends(require_admin)):
+    question = (payload.get("question") or "").strip()
+    answer = (payload.get("answer") or "").strip()
+    source = (payload.get("source") or "").strip()
+    if not question or not answer:
+        raise HTTPException(status_code=422, detail="question 与 answer 都不能为空")
+    if len(question) > 300 or len(answer) > 4000:
+        raise HTTPException(status_code=422, detail="内容过长（question ≤300，answer ≤4000）")
+    row = get_storage().add_answer(question, answer, source)
+    return JSONResponse({"ok": True, "answer": row})
+
+
+@app.delete("/admin/answers/{answer_id}", include_in_schema=False)
+def admin_delete_answer(answer_id: int, _: None = Depends(require_admin)):
+    return {"deleted": get_storage().delete_answer(answer_id)}
+
+
 @app.get("/admin/dataset-status", include_in_schema=False)
 def admin_dataset_status(force: bool = False, _: None = Depends(require_admin)):
     """数据集新鲜度：远端 GitHub 数据集多久没刷新 + 最近一次 Actions 运行结论。"""
