@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS nonces (
     used INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_nonces_expires ON nonces(expires_at);
+CREATE TABLE IF NOT EXISTS answers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    source TEXT
+);
 CREATE TABLE IF NOT EXISTS reads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT NOT NULL,
@@ -258,6 +265,16 @@ class BaseStorage:
 
     def family_stats(self, days: int = 30) -> List[dict]:
         """按 UA 家族聚合 reads（近 N 天），用于"流量结构"图。"""
+        raise NotImplementedError
+
+    # ---- /answers 页面的人工整理问答 ----
+    def add_answer(self, question: str, answer: str, source: str = "") -> dict:
+        raise NotImplementedError
+
+    def list_answers(self, limit: int = 100) -> List[dict]:
+        raise NotImplementedError
+
+    def delete_answer(self, answer_id: int) -> bool:
         raise NotImplementedError
 
     def add_sighting(
@@ -642,6 +659,31 @@ class SQLiteStorage(BaseStorage):
                 (cutoff,),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def add_answer(self, question: str, answer: str, source: str = "") -> dict:
+        created_at = _now()
+        with self._lock:
+            cur = self._conn.execute(
+                "INSERT INTO answers (created_at, question, answer, source) VALUES (?, ?, ?, ?)",
+                (created_at, question, answer, source or ""),
+            )
+            self._conn.commit()
+            row_id = cur.lastrowid
+        return {"id": row_id, "created_at": created_at, "question": question, "answer": answer, "source": source or ""}
+
+    def list_answers(self, limit: int = 100) -> List[dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, created_at, question, answer, source FROM answers ORDER BY id DESC LIMIT ?",
+                (max(1, min(limit, 500)),),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def delete_answer(self, answer_id: int) -> bool:
+        with self._lock:
+            cur = self._conn.execute("DELETE FROM answers WHERE id = ?", (answer_id,))
+            self._conn.commit()
+            return cur.rowcount == 1
 
     def add_sighting(
         self,
@@ -1140,6 +1182,30 @@ class SupabaseStorage(BaseStorage):
             out.append(d)
         out.sort(key=lambda x: x["hits"], reverse=True)
         return [self._norm(r) for r in out]
+
+    def add_answer(self, question: str, answer: str, source: str = "") -> dict:
+        res = (
+            self._client.table("answers")
+            .insert({"question": question, "answer": answer, "source": source or ""})
+            .execute()
+        )
+        if not res.data:
+            raise RuntimeError("Supabase insert 失败（检查 answers 表）")
+        return self._norm(res.data[0])
+
+    def list_answers(self, limit: int = 100) -> List[dict]:
+        res = (
+            self._client.table("answers")
+            .select("id, created_at, question, answer, source")
+            .order("id", desc=True)
+            .limit(max(1, min(limit, 500)))
+            .execute()
+        )
+        return [self._norm(r) for r in (res.data or [])]
+
+    def delete_answer(self, answer_id: int) -> bool:
+        res = self._client.table("answers").delete().eq("id", answer_id).execute()
+        return bool(res.data)
 
 
 _storage: Optional[BaseStorage] = None
