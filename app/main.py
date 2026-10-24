@@ -294,6 +294,13 @@ def sitemap(request: Request):
     return Response(content=xml, media_type="application/xml")
 
 
+if cfg.INDEXNOW_KEY:
+    # IndexNow 密钥文件：注册成精确路径，避免 /{key}.txt 抢走 /llms.txt 等已有路由
+    @app.get(f"/{cfg.INDEXNOW_KEY}.txt", include_in_schema=False)
+    def indexnow_key_file():
+        return PlainTextResponse(cfg.INDEXNOW_KEY)
+
+
 # ---------- 陷阱层：诱饵页 + 信标（提示注入蜜罐）+ 金丝雀令牌 ----------
 
 trap_limiter = SlidingWindowLimiter(cfg.TRAP_BEACON_RATE_MAX, cfg.TRAP_BEACON_RATE_WINDOW)
