@@ -183,6 +183,29 @@ def history(days: int = 30) -> dict:
     if merged:
         entries = [merged[d] for d in sorted(merged)][-days:]
         source = "cache" if cache_fresh else "merged"
-        return {"ok": True, "days": days, "entries": entries, "source": source}
+        return {"ok": True, "days": days, "entries": _with_ai(entries), "source": source}
     return {"ok": True, "days": days, "entries": [], "source": "pending",
             "note": "首次从远端拉取中，稍后刷新即可"}
+
+
+def _ai_total(entry: dict) -> int:
+    try:
+        from app.ua import AI_FAMILIES
+    except Exception:
+        AI_FAMILIES = frozenset()
+    fams = entry.get("families") or {}
+    return sum(int(v or 0) for k, v in fams.items() if k in AI_FAMILIES)
+
+
+def _with_ai(entries: list) -> list:
+    """给每条快照补 ai_total / ai_delta（同样按"累计差"算），供双指标柱使用。"""
+    out = []
+    prev_ai = None
+    for e in entries:
+        d = dict(e)
+        ai = _ai_total(d)
+        d["ai_total"] = ai
+        d["ai_delta"] = None if prev_ai is None else max(0, ai - prev_ai)
+        out.append(d)
+        prev_ai = ai
+    return out
