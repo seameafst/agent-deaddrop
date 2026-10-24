@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS messages (
     embedding TEXT,
     nn_embedding TEXT,
     reply_to INTEGER,
+    channel TEXT NOT NULL DEFAULT 'public',
     content_hash TEXT NOT NULL UNIQUE
 );
 CREATE TABLE IF NOT EXISTS nonces (
@@ -291,21 +292,24 @@ class SQLiteStorage(BaseStorage):
         with self._lock:
             self._conn.executescript(SCHEMA)
             self._conn.commit()
-            # 轻量迁移：旧库补 reply_to 列（新库由 SCHEMA 直接带）
+            # 轻量迁移：旧库补 reply_to / channel 列（新库由 SCHEMA 直接带）
             try:
                 cols = {r[1] for r in self._conn.execute("PRAGMA table_info(messages)").fetchall()}
                 if "reply_to" not in cols:
                     self._conn.execute("ALTER TABLE messages ADD COLUMN reply_to INTEGER")
                     self._conn.commit()
+                if "channel" not in cols:
+                    self._conn.execute("ALTER TABLE messages ADD COLUMN channel TEXT NOT NULL DEFAULT 'public'")
+                    self._conn.commit()
             except sqlite3.Error:
                 pass
 
-    def list_messages(self, limit: int = 50) -> List[dict]:
+    def list_messages(self, limit: int = 50, channel: str = "public") -> List[dict]:
         with self._lock:
             rows = self._conn.execute(
-                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links, reply_to"
-                " FROM messages ORDER BY id DESC LIMIT ?",
-                (limit,),
+                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links, reply_to, channel"
+                " FROM messages WHERE channel = ? ORDER BY id DESC LIMIT ?",
+                (channel, limit),
             ).fetchall()
         out = []
         for r in rows:
@@ -315,12 +319,12 @@ class SQLiteStorage(BaseStorage):
             out.append(d)
         return out
 
-    def find_by_hash(self, content_hash_value: str) -> Optional[dict]:
+    def find_by_hash(self, content_hash_value: str, channel: str = "public") -> Optional[dict]:
         with self._lock:
             row = self._conn.execute(
-                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links"
-                " FROM messages WHERE content_hash = ?",
-                (content_hash_value,),
+                "SELECT id, created_at, content, signature, public_key, sig, verified, nonce, links, channel"
+                " FROM messages WHERE content_hash = ? AND channel = ?",
+                (content_hash_value, channel),
             ).fetchone()
         if not row:
             return None
@@ -343,13 +347,14 @@ class SQLiteStorage(BaseStorage):
         nn_embedding: Optional[str],
         content_hash_value: str,
         reply_to: Optional[int] = None,
+        channel: str = "public",
     ) -> dict:
         created_at = _now()
         try:
             with self._lock:
                 cur = self._conn.execute(
-                    "INSERT INTO messages (created_at, content, signature, public_key, sig, verified, sketch, nonce, links, embedding, nn_embedding, reply_to, content_hash)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO messages (created_at, content, signature, public_key, sig, verified, sketch, nonce, links, embedding, nn_embedding, reply_to, channel, content_hash)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         created_at,
                         content,
@@ -363,6 +368,7 @@ class SQLiteStorage(BaseStorage):
                         embedding,
                         nn_embedding,
                         reply_to,
+                        channel,
                         content_hash_value,
                     ),
                 )
@@ -381,6 +387,7 @@ class SQLiteStorage(BaseStorage):
             "links": links or [],
             "verified": bool(verified),
             "reply_to": reply_to,
+            "channel": channel,
         }
 
     def delete_message(self, msg_id: int) -> bool:
@@ -710,10 +717,11 @@ class SupabaseStorage(BaseStorage):
             out[k] = v
         return out
 
-    def list_messages(self, limit: int = 50) -> List[dict]:
+    def list_messages(self, limit: int = 50, channel: str = "public") -> List[dict]:
         res = (
             self._client.table("messages")
-            .select("id, created_at, content, signature, public_key, sig, verified, nonce, links")
+            .select("id, created_at, content, signature, public_key, sig, verified, nonce, links, reply_to, channel")
+            .eq("channel", channel)
             .order("id", desc=True)
             .limit(limit)
             .execute()
@@ -725,11 +733,12 @@ class SupabaseStorage(BaseStorage):
             out.append(d)
         return out
 
-    def find_by_hash(self, content_hash_value: str) -> Optional[dict]:
+    def find_by_hash(self, content_hash_value: str, channel: str = "public") -> Optional[dict]:
         res = (
             self._client.table("messages")
-            .select("id, created_at, content, signature, public_key, sig, verified, nonce, links")
+            .select("id, created_at, content, signature, public_key, sig, verified, nonce, links, channel")
             .eq("content_hash", content_hash_value)
+            .eq("channel", channel)
             .limit(1)
             .execute()
         )
@@ -753,6 +762,7 @@ class SupabaseStorage(BaseStorage):
         nn_embedding: Optional[str],
         content_hash_value: str,
         reply_to: Optional[int] = None,
+        channel: str = "public",
     ) -> dict:
         try:
             res = (
@@ -770,6 +780,7 @@ class SupabaseStorage(BaseStorage):
                         "embedding": embedding,
                         "nn_embedding": nn_embedding,
                         "reply_to": reply_to,
+                        "channel": channel,
                         "content_hash": content_hash_value,
                     }
                 )
