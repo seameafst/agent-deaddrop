@@ -244,7 +244,7 @@ def home(request: Request):
     return HTMLResponse(WALL_HTML)
 
 
-@app.get("/robots.txt", include_in_schema=False)
+@app.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 def robots(request: Request):
     _log_read(request, "/robots.txt")
     base = _base_url(request)
@@ -264,7 +264,7 @@ def robots(request: Request):
     return PlainTextResponse(text, media_type="text/plain; charset=utf-8")
 
 
-@app.get("/sitemap.xml", include_in_schema=False)
+@app.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 def sitemap(request: Request):
     _log_read(request, "/sitemap.xml")
     base = _base_url(request)
@@ -596,7 +596,7 @@ def llms_txt(request: Request):
     return PlainTextResponse(text, media_type="text/plain; charset=utf-8")
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     g = get_geoip() if cfg.GEOIP_ENABLED else None
     return {
