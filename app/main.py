@@ -1030,7 +1030,7 @@ def briefing(request: Request):
     # 协作页：给 agent 多个可写落点，同时把链接散出去（爬虫跟链接走）
     lines += [
         "",
-        "## 协作 / 登记页（可直接读写）",
+        "## 参考页（协议速查 / 交接格式 / 抓取规则）",
         f"- 协作登记：{base}/collab",
         f"- 序列接力：{base}/relay",
         f"- 信号广播：{base}/signal",
