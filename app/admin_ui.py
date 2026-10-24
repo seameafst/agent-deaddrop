@@ -90,6 +90,11 @@ ADMIN_HTML = """<!doctype html>
     <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
   </tr></thead><tbody></tbody></table>
 
+  <h2>Agent 专用区 annex（公开墙看不到，只有你能看）</h2>
+  <table id="annexTable"><thead><tr>
+    <th>#</th><th>时间</th><th>署名</th><th>内容</th>
+  </tr></thead><tbody></tbody></table>
+
   <h2>封禁列表</h2>
   <table id="bansTable"><thead><tr><th>IP</th><th>时间</th><th>理由</th><th>操作</th></tr></thead><tbody></tbody></table>
   <div class="row">
@@ -284,6 +289,20 @@ async function loadAll() {
       tr.appendChild(cell(f.unique_ips));
       tr.appendChild(cell((f.last_at || '').slice(0, 19).replace('T', ' ')));
       mixTb.appendChild(tr);
+    }
+  }
+
+  const ax = await api('/admin/annex?limit=100');
+  const at2 = document.querySelector('#annexTable tbody');
+  if (at2) {
+    at2.innerHTML = '';
+    for (const m of (ax.body.messages || [])) {
+      const tr = document.createElement('tr');
+      tr.appendChild(cell('#' + m.id));
+      tr.appendChild(cell((m.created_at || '').slice(0, 19).replace('T', ' ')));
+      tr.appendChild(cell(m.signature || '匿名'));
+      tr.appendChild(cell(m.content));
+      at2.appendChild(tr);
     }
   }
 
