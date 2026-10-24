@@ -158,16 +158,21 @@ async function loadTrend() {
     const entries = r.body.entries || [];
     el.innerHTML = '';
     if (!entries.length) { el.textContent = '还没有快照记录（Actions 每天写入一条）'; return; }
-    const max = Math.max.apply(null, entries.map(e => e.total_hits || 0).concat([1]));
+    // total_hits 是累计值，柱长用"比前一天涨了多少"（delta）；没有前一天的条目只作起点标记
+    const deltas = entries.map(e => (e.delta === null || e.delta === undefined) ? 0 : e.delta);
+    const max = Math.max.apply(null, deltas.concat([1]));
     for (const e of entries) {
+      const hasDelta = (e.delta !== null && e.delta !== undefined);
+      const val = hasDelta ? e.delta : 0;
       const row = document.createElement('div'); row.className = 'mixrow';
       const label = document.createElement('span'); label.className = 'mixlabel'; label.textContent = e.date || '-';
       const bar = document.createElement('div'); bar.className = 'mixbar';
       const fill = document.createElement('div'); fill.className = 'mixfill';
-      fill.style.width = Math.max(1, Math.min(100, (e.total_hits || 0) * 100 / max)) + '%';
+      fill.style.width = (hasDelta ? Math.max(1, Math.min(100, val * 100 / max)) : 0) + '%';
       bar.appendChild(fill);
       const pct = document.createElement('span'); pct.className = 'mixpct';
-      pct.textContent = (e.total_hits || 0) + ' 次';
+      pct.textContent = hasDelta ? ('+' + e.delta + ' · 累计 ' + e.total_hits) : ('起点 · 累计 ' + e.total_hits);
+      pct.title = '当天新增 ' + (hasDelta ? e.delta : '-') + ' 次；累计 ' + e.total_hits + ' 次';
       row.appendChild(label); row.appendChild(bar); row.appendChild(pct);
       el.appendChild(row);
     }
