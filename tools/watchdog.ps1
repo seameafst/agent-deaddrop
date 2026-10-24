@@ -27,19 +27,24 @@ function Write-Log([string]$msg) {
 }
 
 function Get-TunnelStatusApi {
-    """用 Cloudflare API 查隧道权威状态；返回 @{status=..;connections=..}，API 不可用返回 $null。"""
+    # 用 Cloudflare API 查隧道权威状态；返回 @{status=..;connections=..}，API 不可用返回 $null。
     if (-not (Test-Path $apiTokenFile)) { return $null }
     try {
         $tok = (Get-Content $apiTokenFile -Raw).Trim()
         $uri = "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/cfd_tunnel/$CF_TUNNEL"
         $r = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $tok" } -TimeoutSec 20
         # 响应可能 success=false 或 result 为空（限流/令牌问题）——此时状态"未知"，不能当成"异常"
-        if ($null -eq $r -or -not $r.success -or $null -eq $r.result -or -not $r.result.status) {
+        if ($null -eq $r -or -not $r.success -or $null -eq $r.result) {
+            return $null
+        }
+        # 只接受已知状态值，任何空/异常字符串都按"未知"处理，避免误判成"隧道异常"而误杀
+        $st = ([string]$r.result.status).Trim().ToLower()
+        if ($st -notin @("healthy", "degraded", "down", "inactive")) {
             return $null
         }
         $conns = 0
         if ($r.result.connections) { $conns = @($r.result.connections).Count }
-        return @{ status = [string]$r.result.status; connections = $conns }
+        return @{ status = $st; connections = $conns }
     } catch {
         return $null
     }
