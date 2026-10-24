@@ -163,21 +163,26 @@ def _refresh_remote_history():
 def history(days: int = 30) -> dict:
     """每日快照（趋势图用）。
 
-    策略：远端缓存（1 小时）> 本地仓库副本（毫秒级）> 后台线程刷新远端。
-    远端抓取很慢，所以永远不阻塞请求——先给能给的，下一次刷新再补最新。
+    把「远端缓存」和「本地仓库副本」按日期合并：同一天以**本地副本**为准
+    （它通常更新、且带 delta），缓存只补本地缺的日期。
+    缓存过期（>1 小时）时起后台线程刷新远端；任何情况下都不阻塞请求。
     """
     days = max(1, min(int(days), 365))
     now = time.time()
-    if _hist_cache["data"] is not None and now - _hist_cache["at"] < 3600:
-        return {"ok": True, "days": days, "entries": _hist_cache["data"][-days:], "source": "cache"}
-    if not _refreshing["flag"]:
+    cache_fresh = _hist_cache["data"] is not None and now - _hist_cache["at"] < 3600
+    if not cache_fresh and not _refreshing["flag"]:
         _refreshing["flag"] = True
         threading.Thread(target=_refresh_remote_history, daemon=True).start()
-    local = _local_history()
-    if local is not None:
-        return {"ok": True, "days": days, "entries": local[-days:], "source": "local"}
-    cached = _hist_cache["data"]
-    if cached:
-        return {"ok": True, "days": days, "entries": cached[-days:], "source": "stale-cache"}
+
+    local = _local_history() or []
+    cached = _hist_cache["data"] or []
+    merged = {h.get("date"): h for h in cached if h.get("date")}
+    for h in local:
+        if h.get("date"):
+            merged[h["date"]] = h
+    if merged:
+        entries = [merged[d] for d in sorted(merged)][-days:]
+        source = "cache" if cache_fresh else "merged"
+        return {"ok": True, "days": days, "entries": entries, "source": source}
     return {"ok": True, "days": days, "entries": [], "source": "pending",
             "note": "首次从远端拉取中，稍后刷新即可"}
