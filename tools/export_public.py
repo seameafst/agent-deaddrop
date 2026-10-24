@@ -235,6 +235,14 @@ def _merge_history(data: dict, out_path: Path, keep_days: int = 90) -> list:
     merged = {h.get("date"): h for h in prev if h.get("date")}
     merged[snap["date"]] = snap
     ordered = [merged[d] for d in sorted(merged)][-keep_days:]
+    # 每日增量：total_hits 是累计值，曲线要用"相比前一天涨了多少"
+    for i, h in enumerate(ordered):
+        if i == 0:
+            h["delta"] = None
+            h["span_days"] = None
+            continue
+        h["delta"] = h["total_hits"] - ordered[i - 1]["total_hits"]
+        h["span_days"] = 1
     return ordered
 
 
