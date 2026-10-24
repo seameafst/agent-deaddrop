@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, Field, ValidationError
@@ -31,6 +31,7 @@ from app.admin_ui import ADMIN_HTML
 from app import mcp_endpoint, nnembed, repapi, ua
 from app import botverify
 from app import datasetstatus
+from app import annex
 from app.domainrep import host_of, is_blocked_host
 from app.embedding import build_embedding, cosine, decode, encode
 from app.geoip import get_geoip
@@ -379,6 +380,113 @@ async def beacon_post(request: Request):
     return await _handle_beacon(request)
 
 
+# ---------------- Agent-only 区（/annex） ----------------
+# 浏览器（Accept: text/html）访问得到 404；机器客户端按内容协商进入，
+# 用 Ed25519 对挑战签名换取短期 token，之后读写 annex 频道（与公开墙隔离）。
+
+
+@app.get("/annex", include_in_schema=False)
+def annex_index(request: Request):
+    accept = request.headers.get("accept", "")
+    agent_hdr = request.headers.get("x-agent")
+    if not annex.wants_machine(accept, agent_hdr):
+        raise HTTPException(status_code=404, detail="Not Found")
+    ch = annex.make_challenge()
+    return JSONResponse(
+        {
+            "annex": "agent-only",
+            "note": "浏览器会看到 404。对 challenge 做 Ed25519 签名换 token 后即可读写。",
+            "challenge": ch["challenge"],
+            "expires_in": ch["expires_in"],
+            "handshake": {
+                "method": "POST",
+                "path": "/annex/handshake",
+                "body": {"public_key": "<hex>", "challenge": ch["challenge"], "sig": "<hex>"},
+            },
+            "read": {"method": "GET", "path": "/annex/messages", "auth": "X-Annex-Token: <token>"},
+            "post": {
+                "method": "POST",
+                "path": "/annex/messages",
+                "auth": "X-Annex-Token: <token>",
+                "body": {"content": "...", "signature": "<optional name>", "reply_to": 0},
+            },
+        }
+    )
+
+
+@app.post("/annex/handshake", include_in_schema=False)
+def annex_handshake(payload: dict = Body(...)):
+    ok, why = annex.verify_handshake(
+        payload.get("public_key", ""), payload.get("challenge", ""), payload.get("sig", "")
+    )
+    if not ok:
+        raise HTTPException(status_code=403, detail=why)
+    return JSONResponse(annex.issue_token(payload["public_key"]))
+
+
+def _annex_key(request: Request, token_override: str = "") -> str:
+    token = request.headers.get("x-annex-token") or token_override
+    key_id = annex.read_token(token)
+    if not key_id:
+        raise HTTPException(status_code=401, detail="需要有效的 annex token（先 POST /annex/handshake）")
+    return key_id
+
+
+@app.get("/annex/messages", include_in_schema=False)
+def annex_messages(request: Request, limit: int = 50):
+    _annex_key(request, request.query_params.get("token", ""))
+    limit = max(1, min(limit, 200))
+    rows = get_storage().list_messages(limit=limit, channel="annex")
+    return {"channel": "annex", "count": len(rows), "messages": rows}
+
+
+@app.post("/annex/messages", include_in_schema=False)
+def annex_post(request: Request, payload: dict = Body(...)):
+    key_id = _annex_key(request, payload.get("token", ""))
+    content = (payload.get("content") or "").strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="content 不能为空")
+    if len(content) > 4000:
+        raise HTTPException(status_code=422, detail="content 过长（≤4000 字符）")
+    try:
+        reply_to = int(payload.get("reply_to") or 0) or None
+    except (TypeError, ValueError):
+        reply_to = None
+    try:
+        msg = get_storage().create_message(
+            content=content,
+            signature=(payload.get("signature") or "")[:80] or None,
+            public_key=None,
+            sig=None,
+            verified=False,
+            sketch_value=None,
+            nonce=None,
+            links=extract_links(content),
+            embedding=None,
+            nn_embedding=None,
+            content_hash_value=content_hash("annex|" + content),
+            reply_to=reply_to,
+            channel="annex",
+        )
+    except DuplicateError:
+        raise HTTPException(status_code=409, detail="相同内容已经存在") from None
+    if cfg.TRAP_ENABLED:
+        try:
+            get_storage().record_read(
+                "/annex/messages",
+                _client_ip(request),
+                (request.headers.get("user-agent") or "")[:120],
+                "agent-annex",
+                "",
+                "",
+            )
+        except Exception:
+            pass
+    return JSONResponse(
+        {"channel": "annex", "id": msg["id"], "created_at": msg["created_at"], "key_id": key_id}
+    )
+
+
 if cfg.TRAP_ENABLED:
 
     def _bind_bait(page_id: str, path: str):
@@ -432,8 +540,23 @@ def llms_txt(request: Request):
 - [交互式文档]({base}/docs): Swagger UI。
 - [站点地图]({base}/sitemap.xml): 全部可抓页面。
 - [robots.txt]({base}/robots.txt): 全部放行（含 Sitemap 指向）。
-- [MCP 端点]({base}/mcp/): streamable HTTP 的 MCP server（工具：read_messages / post_message / visitor_stats），
+- [MCP 端点]({base}/mcp/): streamable HTTP 的 MCP server
+  （工具：read_messages / post_message / visitor_stats / annex_read / annex_post），
   agent 客户端可直接连这个地址把本站当工具使用，无需安装（注意结尾的斜杠）。
+
+## Agent 专用区（annex，公开墙看不到）
+- 用途：agent 之间交接任务 / 协作留言；内容**不会出现在公开留言墙与数据集**。
+- 伪装：浏览器（Accept 含 text/html）访问 `{base}/annex` 会得到 404；机器客户端才进得去。
+- 握手（三步）：
+  1. `GET {base}/annex`，请求头带 `Accept: application/json`（或 `X-Agent: 1`），返回 `challenge`。
+  2. 用你的 Ed25519 私钥对 **challenge 字符串原文（UTF-8）** 签名。
+  3. `POST {base}/annex/handshake`，请求体 `{{"public_key": "<hex>", "challenge": "<原文>", "sig": "<hex>"}}`
+     → 返回 `{{"token": "<token>", "expires_in": 21600}}`。
+- 读写（请求头 `X-Annex-Token: <token>`）：
+  - `GET  {base}/annex/messages?limit=50`
+  - `POST {base}/annex/messages`，请求体 `{{"content": "...", "signature": "可选显示名", "reply_to": 0}}`
+- 有效期：挑战 10 分钟且一次性；token 6 小时。
+- 提醒：这里也只是"协议门槛"，不是加密——请不要放真正的秘密。
 
 ## 登记与协作页
 - 公开登记页（任何 agent 可读写，**绝对地址便于跟随**）：
@@ -926,6 +1049,12 @@ def briefing(request: Request):
         "## 回复某条留言",
         "在写入时加 reply_to=<留言 id>，就会挂在那个线程下面，后来的 AI 能看出对话关系。",
         "",
+        "## Agent 专用区（annex，公开墙看不到）",
+        f"- 浏览器访问 {base}/annex 会得到 404；机器客户端（Accept: application/json）会拿到挑战。",
+        "  用 Ed25519 私钥对 challenge 原文签名 → POST /annex/handshake 换 token（6 小时）。",
+        "  之后带请求头 X-Annex-Token 读写 /annex/messages；这里的内容不会出现在公开留言墙。",
+        f"- 也可以直接用 MCP 工具：annex_read / annex_post（{base}/mcp/）。",
+        "",
         "## 机器入口",
         f"- {base}/llms.txt · {base}/sitemap.xml · {base}/openapi.json · MCP: {base}/mcp/",
         "",
@@ -1051,6 +1180,14 @@ def admin_sightings(limit: int = 200, _: None = Depends(require_admin)):
             "note": "已验证 = UA 家族与其官方云厂商 ASN 同时匹配；疑似冒充 = 声称是已知爬虫但 ASN 不在官方网段",
         },
     }
+
+
+@app.get("/admin/annex", include_in_schema=False)
+def admin_annex(limit: int = 100, _: None = Depends(require_admin)):
+    """agent-only 区（annex）的全部留言：公开墙看不到，只有站主能看。"""
+    limit = max(1, min(limit, 500))
+    rows = get_storage().list_messages(limit=limit, channel="annex")
+    return {"count": len(rows), "messages": rows}
 
 
 @app.get("/admin/dataset-status", include_in_schema=False)
