@@ -90,6 +90,18 @@ ADMIN_HTML = """<!doctype html>
     <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
   </tr></thead><tbody></tbody></table>
 
+  <h2>问答整理（会显示在 /answers 页面）</h2>
+  <div class="row">
+    <input id="qaQ" placeholder="问题" size="38">
+    <input id="qaA" placeholder="答案" size="52">
+    <input id="qaSrc" placeholder="出处（RFC / URL）" size="24">
+    <button id="qaAdd">添加</button>
+    <span id="qaMsg" class="meta"></span>
+  </div>
+  <table id="qaTable"><thead><tr>
+    <th>#</th><th>时间</th><th>问题</th><th>答案</th><th>出处</th><th>操作</th>
+  </tr></thead><tbody></tbody></table>
+
   <h2>Agent 专用区 annex（公开墙看不到，只有你能看）</h2>
   <table id="annexTable"><thead><tr>
     <th>#</th><th>时间</th><th>署名</th><th>内容</th>
@@ -292,6 +304,28 @@ async function loadAll() {
     }
   }
 
+  const qa = await api('/admin/answers?limit=100');
+  const qaTb = document.querySelector('#qaTable tbody');
+  if (qaTb && qa.status === 200) {
+    qaTb.innerHTML = '';
+    for (const a of (qa.body.answers || [])) {
+      const tr = document.createElement('tr');
+      tr.appendChild(cell('#' + a.id));
+      tr.appendChild(cell((a.created_at || '').slice(0, 19).replace('T', ' ')));
+      tr.appendChild(cell(a.question));
+      tr.appendChild(cell(a.answer));
+      tr.appendChild(cell(a.source || '-'));
+      const ops = document.createElement('td');
+      ops.appendChild(btn('删除', 'danger', async () => {
+        const res = await api('/admin/answers/' + a.id, { method: 'DELETE' });
+        say(res.status === 200 ? '已删除 #' + a.id : '删除失败：HTTP ' + res.status, res.status !== 200);
+        loadAll();
+      }));
+      tr.appendChild(ops);
+      qaTb.appendChild(tr);
+    }
+  }
+
   const ax = await api('/admin/annex?limit=100');
   const at2 = document.querySelector('#annexTable tbody');
   if (at2) {
@@ -389,6 +423,22 @@ document.getElementById('loginBtn').onclick = async () => {
 };
 document.getElementById('refresh').onclick = loadAll;
 document.getElementById('logout').onclick = showLogin;
+document.getElementById('qaAdd').onclick = async () => {
+  const q = document.getElementById('qaQ').value.trim();
+  const a = document.getElementById('qaA').value.trim();
+  const s = document.getElementById('qaSrc').value.trim();
+  const msg = document.getElementById('qaMsg');
+  if (!q || !a) { msg.textContent = '问题和答案都要填'; return; }
+  const r = await fetch('/admin/answers', {
+    method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, hdrs()),
+    body: JSON.stringify({ question: q, answer: a, source: s })
+  });
+  if (r.ok) {
+    msg.textContent = '已添加';
+    document.getElementById('qaQ').value = ''; document.getElementById('qaA').value = ''; document.getElementById('qaSrc').value = '';
+    loadAll();
+  } else { msg.textContent = '添加失败：HTTP ' + r.status; }
+};
 document.getElementById('exportBtn').onclick = async () => {
   const r = await fetch('/admin/export', { headers: hdrs() });
   if (!r.ok) { say('导出失败：HTTP ' + r.status, true); return; }
