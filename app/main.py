@@ -32,6 +32,7 @@ from app import mcp_endpoint, nnembed, repapi, ua
 from app import botverify
 from app import datasetstatus
 from app import annex
+from app import digest
 from app.domainrep import host_of, is_blocked_host
 from app.embedding import build_embedding, cosine, decode, encode
 from app.geoip import get_geoip
@@ -1195,6 +1196,15 @@ def admin_annex(limit: int = 100, _: None = Depends(require_admin)):
     limit = max(1, min(limit, 500))
     rows = get_storage().list_messages(limit=limit, channel="annex")
     return {"count": len(rows), "messages": rows}
+
+
+@app.get("/admin/digest", include_in_schema=False)
+def admin_digest(hours: int = 24, format: str = "json", _: None = Depends(require_admin)):
+    """观测日报：最近 N 小时的访客/爬虫/陷阱/留言汇总（默认排除站主自己的访问）。"""
+    d = digest.build(hours=max(1, min(hours, 24 * 30)))
+    if (format or "").lower() in ("md", "markdown", "text"):
+        return PlainTextResponse(digest.render_markdown(d))
+    return d
 
 
 @app.get("/admin/crawler-paths", include_in_schema=False)
