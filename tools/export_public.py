@@ -36,8 +36,12 @@ except Exception:
 UA = "deaddrop-dataset-refresh/1.0"
 
 
-def _get_json(url: str, timeout: int = 30, retries: int = 4):
-    """带退避重试的 JSON 抓取（ngrok 隧道偶发 TLS 中断，重试即可救回）。"""
+def _get_json(url: str, timeout: int = 30, retries: int = 8):
+    """带退避重试的 JSON 抓取。
+
+    隧道会偶发断线（530/502/超时），单次失败不代表站点挂了：
+    这里用递增退避把重试窗口拉到约 2–3 分钟，多数瞬断都能扛过去。
+    """
     last = None
     for attempt in range(1, max(1, retries) + 1):
         try:
@@ -47,7 +51,7 @@ def _get_json(url: str, timeout: int = 30, retries: int = 4):
         except Exception as exc:  # noqa: BLE001 - 网络类异常统一重试
             last = exc
             if attempt < max(1, retries):
-                time.sleep(min(8, 2 * attempt))
+                time.sleep(min(25, 3 * attempt))
     raise RuntimeError(f"抓取失败（{retries} 次尝试）: {url} -> {last}")
 
 
