@@ -123,6 +123,34 @@ function Restart-Cloudflared {
     return $false
 }
 
+function Invoke-DailyReport {
+    # 每天 09:00 后第一次运行时生成观测日报（复用本任务，避免再建一个需要管理员权限的定时任务）
+    try {
+        if ((Get-Date).Hour -lt 9) { return }
+        $dir = Join-Path $root "data\reports"
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $marker = Join-Path $dir ".last-report"
+        $today = Get-Date -Format "yyyy-MM-dd"
+        $last = ""
+        if (Test-Path $marker) { $last = (Get-Content $marker -Raw).Trim() }
+        if ($last -eq $today) { return }
+        $py = Join-Path $root ".venv\Scripts\python.exe"
+        $script = Join-Path $root "tools\daily_report.py"
+        if ((Test-Path $py) -and (Test-Path $script)) {
+            & $py $script 2>&1 | ForEach-Object {
+                $t = [string]$_.ToString().Trim()
+                if ($t) { Write-Log "  daily_report: $t" }
+            }
+            Set-Content -Path $marker -Value $today -Encoding ASCII
+            Write-Log "日报已生成（$today）"
+        }
+    } catch {
+        Write-Log "日报生成失败: $($_.Exception.Message)"
+    }
+}
+
+Invoke-DailyReport
+
 # 1) 本地服务 + 隧道进程
 $serviceOk = $false
 try {
