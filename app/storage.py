@@ -267,6 +267,10 @@ class BaseStorage:
         """按 UA 家族聚合 reads（近 N 天），用于"流量结构"图。"""
         raise NotImplementedError
 
+    def path_stats_for_family(self, family: str, days: int = 30) -> List[dict]:
+        """按家族看它抓了哪些路径（用于"搜索引擎抓取覆盖"视图）。"""
+        raise NotImplementedError
+
     # ---- /answers 页面的人工整理问答 ----
     def add_answer(self, question: str, answer: str, source: str = "") -> dict:
         raise NotImplementedError
@@ -657,6 +661,19 @@ class SQLiteStorage(BaseStorage):
                 " FROM reads WHERE last_at >= ?"
                 " GROUP BY ua_family ORDER BY hits DESC",
                 (cutoff,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def path_stats_for_family(self, family: str, days: int = 30) -> List[dict]:
+        days = max(1, min(int(days), 365))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT path, SUM(count) AS hits, COUNT(DISTINCT ip) AS ips,"
+                " MIN(first_at) AS first_at, MAX(last_at) AS last_at"
+                " FROM reads WHERE ua_family = ? AND last_at >= ?"
+                " GROUP BY path ORDER BY hits DESC",
+                (family, cutoff),
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -1206,6 +1223,33 @@ class SupabaseStorage(BaseStorage):
     def delete_answer(self, answer_id: int) -> bool:
         res = self._client.table("answers").delete().eq("id", answer_id).execute()
         return bool(res.data)
+
+    def path_stats_for_family(self, family: str, days: int = 30) -> List[dict]:
+        days = max(1, min(int(days), 365))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        res = (
+            self._client.table("reads")
+            .select("path, ip, count, first_at, last_at")
+            .eq("ua_family", family)
+            .gte("last_at", cutoff)
+            .execute()
+        )
+        agg: dict = {}
+        for r in res.data or []:
+            path = r.get("path") or ""
+            a = agg.setdefault(path, {"path": path, "hits": 0, "ips": set(), "first_at": "", "last_at": ""})
+            a["hits"] += int(r.get("count") or 0)
+            if r.get("ip"):
+                a["ips"].add(r["ip"])
+            a["first_at"] = min(filter(None, [a["first_at"], r.get("first_at") or ""]), default="")
+            a["last_at"] = max(a["last_at"], r.get("last_at") or "")
+        out = []
+        for a in agg.values():
+            d = dict(a)
+            d["ips"] = len(a["ips"])
+            out.append(d)
+        out.sort(key=lambda x: x["hits"], reverse=True)
+        return [self._norm(r) for r in out]
 
 
 _storage: Optional[BaseStorage] = None
