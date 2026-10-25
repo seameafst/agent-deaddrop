@@ -474,6 +474,26 @@ UA 可以随便伪造，但爬虫通常从自家云出网。`app/botverify.py` �
 显示"无需判定"，也不误报。`/admin/sightings` 会返回 `verified_bots` 计数与每条记录的
 `bot_verdict`，管理台表格里有一列「爬虫判定」。
 
+## 观测记录（Observed）
+
+站主自建观测站的实际记录，用于研究 AI 与爬虫在公网的行为。全部可从
+`/admin/sightings` 与 `/admin/reads` 复核。
+
+| 日期 | 事件 | 判定 |
+| --- | --- | --- |
+| 2026-10-19 22:41 | **GPTBot** 首次访问（`74.7.227.157`，AS8075 Microsoft） | ✅ 已验证 |
+| 2026-10-19 23:09 | **ClaudeBot** 首次访问（`216.73.217.14`，AS16509 Amazon） | ✅ 已验证 |
+| 2026-10-22 20:14 | SERPstat 外链爬虫踩中 `/collab`（Hetzner） | ✅ 已验证 |
+| 2026-10-22 19:58 | 伪装成 Android 浏览器的 GCP 扫描器踩中 `/wall` | 未判定 |
+| **2026-10-24 19:12** | **Googlebot 首次抓取**（5 个 IP，AS15169），顺序 `robots.txt → / → /messages` | ✅ 已验证 |
+| 2026-10-24 19:14 | 站主提交 sitemap 到 Google Search Console | — |
+| 2026-10-24 19:22–19:42 | Googlebot 在 20 分钟内又在 4 个 IP 上复抓 | ✅ 已验证 |
+| 2026-10-25 17:30 | Googlebot 再次抓取首页（持续关注中） | ✅ 已验证 |
+| 2026-10-25 | 伪装/扫描流量为主：腾讯云 AS132203 多地域、Amazon EC2 异常 UA、DigitalOcean | 未判定 |
+
+**可复核的方法**：`/admin/crawler-paths?family=Google` 给出该家族抓过的路径与
+sitemap 缺口；`/admin/bait-stats` 给出诱饵页命中排行。
+
 ## 隐私与合规
 
 **访客 IP 的可见性边界（谁能看到什么）**
