@@ -85,6 +85,12 @@ ADMIN_HTML = """<!doctype html>
   <h2>每日趋势（每天总命中 · 由 GitHub Actions 写入）</h2>
   <div id="trendChart" class="mix"></div>
 
+  <h2>搜索引擎抓取覆盖（Google · 近 30 天）</h2>
+  <p id="crawlNote" class="meta">加载中…</p>
+  <table id="crawlTable"><thead><tr>
+    <th>路径</th><th>命中</th><th>来源 IP 数</th><th>首次</th><th>最后</th>
+  </tr></thead><tbody></tbody></table>
+
   <h2>诱饵页命中排行（哪个诱饵最有效）</h2>
   <table id="baitTable"><thead><tr>
     <th>页面</th><th>命中</th><th>记录</th><th>独立 IP（≥）</th><th>家族分布</th><th>最后访问</th>
@@ -301,6 +307,29 @@ async function loadAll() {
       tr.appendChild(cell(f.unique_ips));
       tr.appendChild(cell((f.last_at || '').slice(0, 19).replace('T', ' ')));
       mixTb.appendChild(tr);
+    }
+  }
+
+  const crawl = await api('/admin/crawler-paths?family=Google&days=30');
+  if (crawl.status === 200) {
+    const note = document.getElementById('crawlNote');
+    const cTb = document.querySelector('#crawlTable tbody');
+    if (note) {
+      const miss = (crawl.body.sitemap_missing || []);
+      note.textContent = '已抓 ' + crawl.body.visited + ' 个路径' +
+        (miss.length ? '；sitemap 里还没抓：' + miss.join(', ') : '；sitemap 已全部覆盖');
+    }
+    if (cTb) {
+      cTb.innerHTML = '';
+      for (const r of (crawl.body.paths || [])) {
+        const tr = document.createElement('tr');
+        tr.appendChild(cell(r.path));
+        tr.appendChild(cell(r.hits));
+        tr.appendChild(cell(r.ips));
+        tr.appendChild(cell((r.first_at || '').slice(0, 19).replace('T', ' ')));
+        tr.appendChild(cell((r.last_at || '').slice(0, 19).replace('T', ' ')));
+        cTb.appendChild(tr);
+      }
     }
   }
 
