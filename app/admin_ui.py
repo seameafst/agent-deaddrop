@@ -30,6 +30,10 @@ ADMIN_HTML = """<!doctype html>
   .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0; }
   .ok { color: #4ade80; } .err { color: #f87171; }
   code { background: #161a20; padding: .1rem .3rem; border-radius: 4px; }
+  .digest { background: #12171d; border: 1px solid #1f2733; border-radius: 6px; padding: .6rem .8rem;
+            font-size: .84rem; line-height: 1.6; margin: .4rem 0 .8rem; color: #c9d1d9; }
+  .digest b { color: #e6edf3; }
+  .digest .ai { color: #2f9e6b; font-weight: 600; }
   .mix { display: flex; flex-direction: column; gap: .3rem; margin: .6rem 0; }
   .mixrow { display: flex; align-items: center; gap: .5rem; font-size: .8rem; }
   .mixlabel { width: 150px; flex: 0 0 150px; color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -62,6 +66,7 @@ ADMIN_HTML = """<!doctype html>
     <span id="msg" class="meta"></span>
   </div>
   <p id="dsStatus" class="meta">数据集状态：加载中…</p>
+  <div id="digestCard" class="digest">今日概览：加载中…</div>
 
   <h2>原始访客（含完整 IP 与 UA，仅本页可见）</h2>
   <table id="readsTable"><thead><tr>
@@ -168,6 +173,29 @@ async function loadDatasetStatus() {
   }
 }
 
+async function loadDigest() {
+  const el = document.getElementById('digestCard');
+  if (!el) return;
+  try {
+    const r = await api('/admin/digest?hours=24');
+    if (r.status !== 200) { el.textContent = '今日概览：无法获取（HTTP ' + r.status + '）'; return; }
+    const d = r.body;
+    const fam = (d.families || []).slice(0, 3).map(f => f.family + ' ' + f.hits).join(' · ') || '无访问';
+    const ai = (d.ai_families || []).length
+      ? '<span class="ai">' + d.ai_families.map(f => f.family + ' ' + f.hits).join(' · ') + '</span>'
+      : '无';
+    const bait = (d.bait_hits || []).slice(0, 3).map(([p, n]) => p + ' ' + n).join(' · ') || '无';
+    el.innerHTML = '<b>今日概览（最近 ' + d.hours + ' 小时）</b><br>' +
+      '总命中 <b>' + d.total_hits + '</b> · AI/搜索引擎 ' + ai +
+      ' · 陷阱命中 <b>' + (d.sightings || []).length + '</b>' +
+      ' · 新留言 <b>' + d.new_public_messages + '</b>（annex ' + d.new_annex_messages + '）<br>' +
+      '来访家族：' + fam + '<br>' +
+      '诱饵页：' + bait;
+  } catch (e) {
+    if (el) el.textContent = '今日概览：加载失败';
+  }
+}
+
 async function loadTrend() {
   const el = document.getElementById('trendChart');
   if (!el) return;
@@ -223,6 +251,7 @@ async function loadAll() {
   if (reads.status !== 200) { say('读取失败：HTTP ' + reads.status, true); return; }
 
   loadDatasetStatus();  // 不 await：慢的网络检查放后台
+  loadDigest();         // 今日概览
   loadTrend();          // 同上：趋势要读远端数据集
   const rt = document.querySelector('#readsTable tbody'); rt.innerHTML = '';
   for (const r of reads.body.reads) {
