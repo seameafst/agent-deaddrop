@@ -1197,6 +1197,27 @@ def admin_annex(limit: int = 100, _: None = Depends(require_admin)):
     return {"count": len(rows), "messages": rows}
 
 
+@app.get("/admin/crawler-paths", include_in_schema=False)
+def admin_crawler_paths(family: str = "Google", days: int = 30, _: None = Depends(require_admin)):
+    """某个爬虫家族（Google / Bing / OpenAI…）在站内抓了哪些路径、还缺哪些 sitemap 页。"""
+    days = max(1, min(days, 365))
+    rows = get_storage().path_stats_for_family(family, days=days)
+    seen = {r["path"] for r in rows}
+    expected = ["/", "/messages", "/reads", "/identities", "/stats", "/llms.txt",
+                "/openapi.json", "/docs"]
+    if cfg.TRAP_ENABLED:
+        expected += [p for p in trap.BAIT_PATHS if p.count("-") == 0]
+    missing = [p for p in expected if p not in seen]
+    return {
+        "family": family,
+        "days": days,
+        "visited": len(rows),
+        "paths": rows,
+        "sitemap_missing": missing,
+        "note": "只统计该家族 UA 的 reads；missing 是 sitemap 里还没被抓过的路径",
+    }
+
+
 @app.get("/admin/answers", include_in_schema=False)
 def admin_answers(limit: int = 100, _: None = Depends(require_admin)):
     """已整理的问答（/answers 页面会展示）。"""
