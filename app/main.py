@@ -281,7 +281,7 @@ def sitemap(request: Request):
         ("/docs", "weekly", "0.5"),
     ]
     if cfg.TRAP_ENABLED:  # 诱饵页也进 sitemap，让爬虫与 agent 找得到
-        pages += [(path, "hourly", "0.6") for path in trap.BAIT_PATHS]
+        pages += [(path, "daily", "0.8") for path in trap.BAIT_PATHS]
     urls = "".join(
         f"  <url><loc>{base}{path}</loc><lastmod>{today}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{prio}</priority></url>\n"
