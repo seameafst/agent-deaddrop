@@ -74,7 +74,7 @@ if ($useCloudflare) {
         Write-Host "启动 cloudflared 隧道 -> 本地 $Port 端口（域名 $domain）"
         # 令牌通过环境变量传递，避免出现在进程命令行里
         $env:TUNNEL_TOKEN = $token
-        Start-Process -FilePath $cf -ArgumentList @("tunnel", "run") -WindowStyle Minimized
+        Start-Process -FilePath $cf -ArgumentList @("tunnel", "--protocol", "http2", "run") -WindowStyle Minimized
         for ($i = 0; $i -lt 40; $i++) {
             Start-Sleep -Milliseconds 700
             if ((Get-Process cloudflared -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) { break }
