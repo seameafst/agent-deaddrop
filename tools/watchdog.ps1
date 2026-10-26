@@ -103,11 +103,11 @@ function Restart-Cloudflared {
     # 先试 Minimized，失败就退回不带窗口样式。
     $started = $false
     try {
-        $p = Start-Process -FilePath $exe -ArgumentList @("tunnel", "run") -WindowStyle Minimized -PassThru -ErrorAction Stop
+        $p = Start-Process -FilePath $exe -ArgumentList @("tunnel", "--protocol", "http2", "run") -WindowStyle Minimized -PassThru -ErrorAction Stop
         $started = $true
     } catch {
         try {
-            $p = Start-Process -FilePath $exe -ArgumentList @("tunnel", "run") -PassThru -ErrorAction Stop
+            $p = Start-Process -FilePath $exe -ArgumentList @("tunnel", "--protocol", "http2", "run") -PassThru -ErrorAction Stop
             $started = $true
         } catch {
             Write-Log "Start-Process 失败: $($_.Exception.Message)"
