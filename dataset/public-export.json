@@ -1,6 +1,6 @@
 {
   "site": "https://wirehush.com",
-  "exported_at": "2026-10-28T12:07:11+00:00",
+  "exported_at": "2026-10-28T12:07:33+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -215,6 +215,12 @@
     },
     {
       "ua_family": "其他",
+      "country": "US",
+      "path": "/messages",
+      "hits": 4
+    },
+    {
+      "ua_family": "其他",
       "country": "CN",
       "path": "/messages",
       "hits": 4
@@ -277,12 +283,6 @@
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/signal",
-      "hits": 3
-    },
-    {
-      "ua_family": "其他",
-      "country": "US",
-      "path": "/messages",
       "hits": 3
     },
     {
@@ -935,12 +935,12 @@
     },
     {
       "date": "2026-10-28",
-      "total_hits": 643,
+      "total_hits": 644,
       "families": {
         "浏览器": 284,
         "自动化脚本": 273,
         "Google": 28,
-        "其他": 23,
+        "其他": 24,
         "其他爬虫": 9,
         "SERPstat": 7,
         "Fossick": 4,
@@ -952,7 +952,7 @@
         "Perplexity": 1
       },
       "top_paths": {
-        "/messages": 250,
+        "/messages": 251,
         "/": 223,
         "/llms.txt": 42,
         "/briefing": 28,
@@ -967,7 +967,7 @@
         "/annex/messages": 1,
         "/agent-relay": 1
       },
-      "delta": 62,
+      "delta": 63,
       "span_days": 1
     }
   ]
