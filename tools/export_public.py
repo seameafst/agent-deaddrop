@@ -57,8 +57,10 @@ def _get_json(url: str, timeout: int = 30, retries: int = 8):
 
 # ---------------- 模式二：只用公开端点（无依赖、可在云端跑） ----------------
 
-def build_from_api(base: str) -> dict:
+def build_from_api(base: str, site: str = "") -> dict:
     base = base.rstrip("/")
+    # site 用于写入导出文件（本地补跑时用 http://127.0.0.1 抓取，但记录公网地址）
+    site = (site or base).rstrip("/")
     messages = _get_json(f"{base}/messages?limit=200").get("messages", [])
     reads = _get_json(f"{base}/reads?limit=500").get("reads", [])
     stats = _get_json(f"{base}/stats?days=90")
@@ -82,7 +84,7 @@ def build_from_api(base: str) -> dict:
     ]
 
     return {
-        "site": base,
+        "site": site,
         "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": "public endpoints only (/messages, /reads, /stats)",
         "redaction": {
@@ -117,11 +119,11 @@ def build_from_api(base: str) -> dict:
         "sighting_stats": sighting_stats,
         "declared_agent_names": [],
         "machine_entrypoints": {
-            "llms_txt": f"{base}/llms.txt",
-            "messages": f"{base}/messages",
-            "beacon": f"{base}/beacon?src=dataset&model=<model>&task=<task>",
-            "mcp": f"{base}/mcp/",
-            "sitemap": f"{base}/sitemap.xml",
+            "llms_txt": f"{site}/llms.txt",
+            "messages": f"{site}/messages",
+            "beacon": f"{site}/beacon?src=dataset&model=<model>&task=<task>",
+            "mcp": f"{site}/mcp/",
+            "sitemap": f"{site}/sitemap.xml",
         },
     }
 
@@ -255,12 +257,13 @@ def main():
     ap.add_argument("--from-api", metavar="BASE_URL", help="只调用公开端点重建导出（云端可用，无依赖）")
     ap.add_argument("--out", default=None)
     ap.add_argument("--pretty", action="store_true")
+    ap.add_argument("--site", default="", help="写入导出的站点地址（默认同 --from-api）")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parent.parent
     if args.from_api:
         out_path = Path(args.out) if args.out else root / "dataset" / "public-export.json"
-        data = build_from_api(args.from_api)
+        data = build_from_api(args.from_api, args.site)
     else:
         out_path = Path(args.out) if args.out else root / "data" / "public-export.json"
         data = build_public_export()
