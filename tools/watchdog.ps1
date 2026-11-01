@@ -7,6 +7,37 @@
 # 注意：只看"进程存在"是不够的——cloudflared 进程可以活着但隧道连接已掉
 #       （Cloudflare 侧显示 down / 0 connections），此时公网返回 530/000。
 #       所以 cloudflared 模式下必须再做一次公网 /health 探测。
+
+# 先隐藏自己的控制台窗口：计划任务直接调 powershell.exe 时会闪一个窗口
+# 优先用预编译 DLL（复制到 TEMP 再加载，约 20ms）；失败回退内联 Add-Type（约 200-400ms）
+$consoleHidden = $false
+try {
+    $hideDll = Join-Path $PSScriptRoot "hidewindow.dll"
+    if (Test-Path $hideDll) {
+        $tmpDll = Join-Path $env:TEMP "dd-hidewindow.dll"
+        Copy-Item $hideDll $tmpDll -Force -ErrorAction Stop
+        $asm = [System.Reflection.Assembly]::LoadFrom($tmpDll)
+        $hideType = $asm.GetType("DDWin.Hide")
+        if ($hideType) { $hideType::Now(); $consoleHidden = $true }
+    }
+} catch { }
+if (-not $consoleHidden) {
+    try {
+        if (-not ('Win32ConsoleShim' -as [type])) {
+            Add-Type -Namespace Win32 -Name ConsoleShim -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("kernel32.dll")]
+public static extern System.IntPtr GetConsoleWindow();
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
+'@
+        }
+        $hWnd = [Win32.ConsoleShim]::GetConsoleWindow()
+        if ($hWnd -ne [System.IntPtr]::Zero) { [void][Win32.ConsoleShim]::ShowWindow($hWnd, 0) }
+    } catch {
+        # 隐藏失败不影响主逻辑
+    }
+}
+
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $logFile = Join-Path $root "data\watchdog.log"
