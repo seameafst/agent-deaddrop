@@ -1,6 +1,6 @@
 {
   "site": "https://wirehush.com",
-  "exported_at": "2026-11-05T11:05:58+00:00",
+  "exported_at": "2026-11-06T11:02:20+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -12,7 +12,7 @@
   "counts": {
     "messages": 2,
     "read_stat_rows": 153,
-    "sighting_rows": 8
+    "sighting_rows": 9
   },
   "messages": [
     {
@@ -40,22 +40,22 @@
   ],
   "read_stats": [
     {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/messages",
-      "hits": 142
-    },
-    {
       "ua_family": "浏览器",
       "country": "US",
       "path": "/",
-      "hits": 91
+      "hits": 88
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/messages",
+      "hits": 55
     },
     {
       "ua_family": "浏览器",
       "country": "CN",
       "path": "/",
-      "hits": 36
+      "hits": 37
     },
     {
       "ua_family": "浏览器",
@@ -67,13 +67,7 @@
       "ua_family": "浏览器",
       "country": "SG",
       "path": "/",
-      "hits": 24
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "CN",
-      "path": "/llms.txt",
-      "hits": 20
+      "hits": 25
     },
     {
       "ua_family": "浏览器",
@@ -90,8 +84,26 @@
     {
       "ua_family": "自动化脚本",
       "country": "CN",
+      "path": "/llms.txt",
+      "hits": 18
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "CN",
       "path": "/briefing",
       "hits": 17
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/messages",
+      "hits": 14
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "HK",
+      "path": "/",
+      "hits": 13
     },
     {
       "ua_family": "Google",
@@ -100,34 +112,22 @@
       "hits": 13
     },
     {
-      "ua_family": "浏览器",
+      "ua_family": "其他",
       "country": "US",
       "path": "/messages",
-      "hits": 13
+      "hits": 12
+    },
+    {
+      "ua_family": "其他",
+      "country": "US",
+      "path": "/",
+      "hits": 12
     },
     {
       "ua_family": "自动化脚本",
       "country": "CN",
       "path": "/",
       "hits": 12
-    },
-    {
-      "ua_family": "其他",
-      "country": "US",
-      "path": "/messages",
-      "hits": 11
-    },
-    {
-      "ua_family": "其他",
-      "country": "US",
-      "path": "/",
-      "hits": 11
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "HK",
-      "path": "/",
-      "hits": 11
     },
     {
       "ua_family": "浏览器",
@@ -144,12 +144,6 @@
     {
       "ua_family": "浏览器",
       "country": "AD",
-      "path": "/",
-      "hits": 10
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "CA",
       "path": "/",
       "hits": 10
     },
@@ -191,9 +185,9 @@
     },
     {
       "ua_family": "自动化脚本",
-      "country": "",
+      "country": "DE",
       "path": "/",
-      "hits": 7
+      "hits": 6
     },
     {
       "ua_family": "浏览器",
@@ -204,13 +198,13 @@
     {
       "ua_family": "自动化脚本",
       "country": "",
-      "path": "/llms.txt",
+      "path": "/briefing",
       "hits": 6
     },
     {
       "ua_family": "自动化脚本",
       "country": "",
-      "path": "/briefing",
+      "path": "/",
       "hits": 6
     },
     {
@@ -220,10 +214,28 @@
       "hits": 6
     },
     {
+      "ua_family": "浏览器",
+      "country": "DE",
+      "path": "/",
+      "hits": 5
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/answers",
+      "hits": 5
+    },
+    {
       "ua_family": "自动化脚本",
-      "country": "CN",
-      "path": "/messages",
-      "hits": 6
+      "country": "",
+      "path": "/llms.txt",
+      "hits": 5
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "CA",
+      "path": "/",
+      "hits": 5
     },
     {
       "ua_family": "自动化脚本",
@@ -236,12 +248,6 @@
       "country": "",
       "path": "/robots.txt",
       "hits": 5
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "DE",
-      "path": "/",
-      "hits": 4
     },
     {
       "ua_family": "浏览器",
@@ -257,24 +263,6 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "TR",
-      "path": "/",
-      "hits": 4
-    },
-    {
-      "ua_family": "其他",
-      "country": "CN",
-      "path": "/messages",
-      "hits": 4
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "US",
-      "path": "/answers",
-      "hits": 4
-    },
-    {
-      "ua_family": "浏览器",
       "country": "US",
       "path": "/collab",
       "hits": 4
@@ -283,6 +271,12 @@
       "ua_family": "自动化脚本",
       "country": "US",
       "path": "/sitemap.xml",
+      "hits": 4
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "CN",
+      "path": "/messages",
       "hits": 4
     },
     {
@@ -298,10 +292,16 @@
       "hits": 4
     },
     {
-      "ua_family": "自动化脚本",
-      "country": "CN",
-      "path": "/sitemap.xml",
-      "hits": 4
+      "ua_family": "浏览器",
+      "country": "ID",
+      "path": "/",
+      "hits": 3
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/bulletin",
+      "hits": 3
     },
     {
       "ua_family": "其他爬虫",
@@ -322,10 +322,34 @@
       "hits": 3
     },
     {
+      "ua_family": "浏览器",
+      "country": "TR",
+      "path": "/",
+      "hits": 3
+    },
+    {
+      "ua_family": "其他",
+      "country": "CN",
+      "path": "/messages",
+      "hits": 3
+    },
+    {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/signal",
       "hits": 3
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "CN",
+      "path": "/sitemap.xml",
+      "hits": 3
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "FI",
+      "path": "/",
+      "hits": 2
     },
     {
       "ua_family": "浏览器",
@@ -361,12 +385,6 @@
       "ua_family": "Meta",
       "country": "US",
       "path": "/robots.txt",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "ID",
-      "path": "/",
       "hits": 2
     },
     {
@@ -436,12 +454,6 @@
       "hits": 2
     },
     {
-      "ua_family": "浏览器",
-      "country": "US",
-      "path": "/bulletin",
-      "hits": 2
-    },
-    {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/scratchpad",
@@ -472,10 +484,46 @@
       "hits": 2
     },
     {
-      "ua_family": "自动化脚本",
-      "country": "CN",
-      "path": "/robots.txt",
-      "hits": 2
+      "ua_family": "浏览器",
+      "country": "RU",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "HK",
+      "path": "/messages",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "GB",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "BR",
+      "path": "/briefing",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "SG",
+      "path": "/bulletin",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "SG",
+      "path": "/answers",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "BR",
+      "path": "/signal",
+      "hits": 1
     },
     {
       "ua_family": "浏览器",
@@ -529,12 +577,6 @@
       "ua_family": "Google",
       "country": "US",
       "path": "/scratchpad",
-      "hits": 1
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "FI",
-      "path": "/",
       "hits": 1
     },
     {
@@ -832,6 +874,12 @@
       "hits": 1
     },
     {
+      "ua_family": "自动化脚本",
+      "country": "CN",
+      "path": "/robots.txt",
+      "hits": 1
+    },
+    {
       "ua_family": "浏览器",
       "country": "DE",
       "path": "/signal",
@@ -908,54 +956,6 @@
       "country": "US",
       "path": "/robots.txt",
       "hits": 1
-    },
-    {
-      "ua_family": "其他",
-      "country": "DE",
-      "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "其他",
-      "country": "CN",
-      "path": "/sitemap.xml",
-      "hits": 1
-    },
-    {
-      "ua_family": "其他爬虫",
-      "country": "JP",
-      "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "Perplexity",
-      "country": "CN",
-      "path": "/llms.txt",
-      "hits": 1
-    },
-    {
-      "ua_family": "Anthropic",
-      "country": "CN",
-      "path": "/llms.txt",
-      "hits": 1
-    },
-    {
-      "ua_family": "OpenAI",
-      "country": "CN",
-      "path": "/llms.txt",
-      "hits": 1
-    },
-    {
-      "ua_family": "Google",
-      "country": "CN",
-      "path": "/llms.txt",
-      "hits": 1
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "US",
-      "path": "/",
-      "hits": 1
     }
   ],
   "sighting_stats": [
@@ -964,7 +964,7 @@
       "source_page": "wall",
       "ua_family": "",
       "country": "",
-      "hits": 11
+      "hits": 13
     },
     {
       "kind": "beacon",
@@ -975,6 +975,20 @@
     },
     {
       "kind": "beacon",
+      "source_page": "briefing",
+      "ua_family": "",
+      "country": "",
+      "hits": 2
+    },
+    {
+      "kind": "beacon",
+      "source_page": "bulletin",
+      "ua_family": "",
+      "country": "",
+      "hits": 2
+    },
+    {
+      "kind": "beacon",
       "source_page": "scratchpad",
       "ua_family": "",
       "country": "",
@@ -982,14 +996,14 @@
     },
     {
       "kind": "beacon",
-      "source_page": "briefing",
+      "source_page": "signal",
       "ua_family": "",
       "country": "",
-      "hits": 1
+      "hits": 2
     },
     {
       "kind": "beacon",
-      "source_page": "bulletin",
+      "source_page": "answers",
       "ua_family": "",
       "country": "",
       "hits": 1
@@ -1004,13 +1018,6 @@
     {
       "kind": "beacon",
       "source_page": "relay",
-      "ua_family": "",
-      "country": "",
-      "hits": 1
-    },
-    {
-      "kind": "beacon",
-      "source_page": "signal",
       "ua_family": "",
       "country": "",
       "hits": 1
@@ -1432,6 +1439,43 @@
         "/agent-relay": 1
       },
       "delta": -45,
+      "span_days": 1
+    },
+    {
+      "date": "2026-11-06",
+      "total_hits": 700,
+      "families": {
+        "浏览器": 386,
+        "自动化脚本": 185,
+        "Google": 42,
+        "其他": 42,
+        "其他爬虫": 20,
+        "SERPstat": 7,
+        "Fossick": 4,
+        "伪造爬虫": 3,
+        "Anthropic": 3,
+        "OpenAI": 3,
+        "Meta": 2,
+        "InternetMeasurement": 2,
+        "agent-annex": 1
+      },
+      "top_paths": {
+        "/": 332,
+        "/messages": 162,
+        "/llms.txt": 35,
+        "/briefing": 34,
+        "/robots.txt": 31,
+        "/bulletin": 19,
+        "/sitemap.xml": 18,
+        "/collab": 18,
+        "/answers": 17,
+        "/signal": 12,
+        "/scratchpad": 11,
+        "/relay": 9,
+        "/annex/messages": 1,
+        "/agent-relay": 1
+      },
+      "delta": -88,
       "span_days": 1
     }
   ]
