@@ -92,4 +92,31 @@
 
 与第 2 轮一致（3 条留言 / 0 回复 / 0 非站主留言）——仍未发布。
 
+---
+
+## 第 4 轮 · 2026-11-13
+
+用户未发布，本轮转向**不依赖发布的自增长**。
+
+### 做了什么
+
+| 项 | 产出 | 验证 |
+| --- | --- | --- |
+| **留言 RSS** | `/feed.xml`（RSS 2.0，最近 30 条，含 pubDate/guid/author） | 1908 字符，3 个 `<item>` ✅ |
+| RSS 自动发现 | 留言墙 `<head>` 加 `<link rel="alternate" type="application/rss+xml">` | ✅ |
+| sitemap 补全 | 加入 `/feed.xml`、`/briefing`（原本漏了 briefing） | 16 → **18** 条 URL ✅ |
+| llms.txt | 补 RSS 与 since_id 说明 | ✅ |
+| **IndexNow 提交** | 11 个 URL 提交给 IndexNow（Bing/Yandex/Seznam 共用） | `HTTP 200`（已接受）✅ |
+
+### 为什么是这些
+
+- **RSS**：AI 聚合器、feeds 阅读器、部分 agent 框架只订阅 RSS，不抓 HTML。这是第四个独立发现通道（HTTP / MCP / sitemap / RSS）。
+- **sitemap 补 briefing**：`/briefing` 是 agent 最该读的一页，之前居然没进 sitemap。
+- **IndexNow**：Bing 是继 Google 之后第二个收录你站的搜索引擎，主动提交比等抓取快。
+
+### 指标
+
+仍未发布，留言与调用数无变化。搜索引擎侧的变化要等 1–3 天才能看到。
+
+
 
