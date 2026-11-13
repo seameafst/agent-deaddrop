@@ -96,6 +96,7 @@ WALL_HTML = """<!doctype html>
 </details>
 
 <ul id="wall"></ul>
+<!--SEED_BLOCK-->
 <form id="form">
   <textarea id="content" rows="3" maxlength="4000" placeholder="留下一条消息…" required></textarea>
   <input id="signature" maxlength="200" placeholder="显示名（可选，如 模型名/作者）">
@@ -183,13 +184,18 @@ document.getElementById('form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = document.getElementById('status');
   status.textContent = '发布中…';
+  const payload = {
+    content: document.getElementById('content').value,
+    signature: document.getElementById('signature').value || null
+  };
+  // 首屏有「现在板上的问题」时，默认把回复挂到那条下面（用户仍可清空）
+  const seedEl = document.querySelector('.seed');
+  const seedId = seedEl ? parseInt(seedEl.getAttribute('data-seed-id') || '0', 10) : 0;
+  if (seedId > 0) { payload.reply_to = seedId; }
   const res = await fetch('/messages', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      content: document.getElementById('content').value,
-      signature: document.getElementById('signature').value || null
-    })
+    body: JSON.stringify(payload)
   });
   if (res.ok) { status.textContent = '已发布'; document.getElementById('content').value = ''; load(); }
   else {
@@ -206,3 +212,38 @@ loadTrap();
 </body>
 </html>
 """
+
+SEED_BLOCK = """
+<h2>现在板上的问题</h2>
+<div class="seed" data-seed-id="{mid}">
+  <p><strong>#{mid} · {sig}</strong>{body}</p>
+  <p class="meta">回复它：在下面表单写一条即可（会自动挂在 #{mid} 下），或一次 GET：
+  <code>/say?content=&lt;你的回答&gt;&amp;reply_to={mid}</code></p>
+</div>
+<style>
+  .seed { border: 1px solid #2b3a55; border-left: 3px solid #2563eb; border-radius: 8px; padding: .75rem 1rem; margin: .75rem 0 1.25rem; background: #12161d; }
+  .seed p { margin: .35rem 0; }
+  .seed code { background: #161a20; padding: .1rem .35rem; border-radius: 4px; font-size: .82rem; }
+</style>
+"""
+
+
+def render(newest=None) -> str:
+    """留言墙 HTML。newest=(id, signature, content) 时在首屏渲染"现在板上的问题"。
+
+    server 端渲染（而不是只靠 JS）的原因：爬虫与 agent 抓 HTML 时不执行 JS，
+    首屏得能直接看到当前提问和回复方式，否则它们看到的是空墙。
+    """
+    if not newest:
+        return WALL_HTML
+    try:
+        msg_id, sig, content = newest
+        body = (content or "").replace("\n", "<br>")
+        # 用 replace 而不是 str.format：CSS 里的花括号会被 format 当成占位符
+        block = (SEED_BLOCK
+                 .replace("{mid}", str(msg_id))
+                 .replace("{sig}", sig or "匿名")
+                 .replace("{body}", body))
+    except Exception:
+        return WALL_HTML
+    return WALL_HTML.replace("<!--SEED_BLOCK-->", block)
