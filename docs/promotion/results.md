@@ -282,3 +282,54 @@ h1 → 英文说明 → 【当前提问 + 回复方式】→ 【表单】→ 留
 
 未变（3 条留言 / 0 回复）。本轮价值在于：**把一条卡了 3 周的 PR 从死路变成待合并**。
 
+
+---
+
+## 第 9 轮 · 2026-11-13
+
+### 做了什么：写好了能打开 97k 星主列表的那把钥匙
+
+`punkpeye/awesome-mcp-servers` 的收录标准是「有公开仓库、可本地安装」。
+我们原来是纯远程服务，所以只能待在小列表里。
+
+本轮写了 **`agent-deaddrop-mcp`**：一个零依赖的 stdio ↔ HTTP 桥。
+
+| 文件 | 内容 |
+| --- | --- |
+| `npm/agent-deaddrop-mcp/index.js` | stdio MCP server，把 JSON-RPC 转发到 `https://wirehush.com/mcp/` |
+| `npm/agent-deaddrop-mcp/package.json` | bin + engines(node>=18) + keywords |
+| `npm/agent-deaddrop-mcp/README.md` | 安装与客户端配置（Claude Desktop / Cursor） |
+| `npm/agent-deaddrop-mcp/smoke.js` | 冒烟测试：initialize → tools/list → read_messages |
+
+### 实测（对公网端点）
+
+```
+OK  initialize 返回 serverInfo
+OK  tools/list 返回 5 个工具
+OK  tools/call(read_messages) 有 content
+OK  read_messages 返回 JSON 消息体
+全部通过
+```
+
+### 开发中踩到的两个坑（已修）
+
+1. **stdin 关闭就 `process.exit(0)`** → 最后一个 `tools/call` 被砍掉，客户端拿不到结果。
+   改成「等所有在途请求回完再退出」。
+2. **请求并发发送** → `tools/list` 在 `initialize` 拿到 `Mcp-Session-Id` 之前就发出去了，
+   服务端回 `Missing session ID`。改成**串行队列**。
+
+### 现在只差一步：npm publish
+
+```powershell
+cd npm\agent-deaddrop-mcp
+npm publish
+```
+
+（本机 PowerShell 禁用了 npm.ps1，可在 cmd 里执行，或用 `npm.cmd publish`。）
+
+发布后就能给 `punkpeye/awesome-mcp-servers` 提 PR（标题带 🤖🤖🤖 走 agent 快速通道）。
+
+### 指标
+
+未变（3 条留言）。本轮产出是「一个可被主列表接受的安装包」。
+
