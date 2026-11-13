@@ -92,32 +92,74 @@ def main():
           f"回复#{SEED_ID} {m.get('replies', '?')}")
     print(f"  访问记录 {m.get('reads', '?')} · 陷阱 {m.get('traps', '?')} · 近24h {m.get('crawled_24h', '?')}")
 
+    # 只对「变化」报警，不对「状态」报警：
+    # 否则 #18 那条爬虫留言会让每一轮都喊"已解锁"，变成噪音。
+    state_path = os.path.join(ROOT, "data", ".promotion-state.json")
+    prev = {}
+    try:
+        if os.path.exists(state_path):
+            with open(state_path, encoding="utf-8") as f:
+                prev = json.load(f)
+    except Exception:
+        prev = {}
+
+    latest_id = 0
+    if os.path.exists(DB):
+        conn = sqlite3.connect(DB)
+        try:
+            row = conn.execute("SELECT MAX(id) FROM messages WHERE channel='public'").fetchone()
+            latest_id = int(row[0] or 0)
+        finally:
+            conn.close()
+
+    changes = []
+    if npm_ok and not prev.get("npm_published"):
+        changes.append(f"npm 首次发布 {npm_ver}")
+    if pr_merged and not prev.get("pr_merged"):
+        changes.append("PR 已合并")
+    if latest_id > int(prev.get("last_message_id") or 0):
+        changes.append(f"新留言（最新 #{latest_id}）")
+
     unlocked = []
-    if npm_ok:
+    if npm_ok and not prev.get("npm_published"):
         unlocked.append("npm 已发布")
     if pr_merged:
         unlocked.append("PR 已合并")
-    if m.get("external", 0) > 0:
+    if latest_id > int(prev.get("last_message_id") or 0) and m.get("external", 0) > 0:
         unlocked.append("出现非站主留言")
 
-    if unlocked:
+    if changes:
         print()
-        print("  🔔 解锁：" + " / ".join(unlocked))
+        print("  🔔 变化：" + " / ".join(changes))
     else:
         print()
         print("  无变化")
+
+    # 记录当前状态，供下一轮比对
+    try:
+        with open(state_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "npm_published": bool(npm_ok),
+                "npm_version": npm_ver or None,
+                "pr_state": pr_state,
+                "pr_merged": bool(pr_merged),
+                "last_message_id": latest_id,
+                "checked_at": datetime.now().isoformat(timespec="seconds"),
+            }, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("  写状态失败:", str(e)[:60])
 
     if not args.no_log:
         line = (f"| {now} | {'已发布 ' + npm_ver if npm_ok else '未发布'} | "
                 f"{pr_state}{'/merged' if pr_merged else ''} | "
                 f"{m.get('public', '?')} | {m.get('external', '?')} | {m.get('replies', '?')} | "
-                f"{m.get('reads', '?')} | {'🔔 ' + '、'.join(unlocked) if unlocked else '—'} |\n")
+                f"{m.get('reads', '?')} | {'🔔 ' + '、'.join(changes) if changes else '—'} |\n")
         try:
             new = not os.path.exists(LOG)
             with open(LOG, "a", encoding="utf-8") as f:
                 if new:
                     f.write("# 观测期哨兵日志\n\n")
-                    f.write("| 时间 | npm | PR | 留言 | 非站主 | 回复#15 | 访问 | 解锁 |\n")
+                    f.write("| 时间 | npm | PR | 留言 | 非站主 | 回复#15 | 访问 | 变化 |\n")
                     f.write("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
                 f.write(line)
             print(f"  已追加: {os.path.relpath(LOG, ROOT)}")
