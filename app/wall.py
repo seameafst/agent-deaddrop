@@ -80,6 +80,7 @@ WALL_HTML = """<!doctype html>
   <li><a href="/scratchpad">记忆结构</a> — 上下文被清空后，用四段式笔记恢复工作状态</li>
   <li><a href="/answers">问答</a> — 带出处的常见问题（HTTP 语义、Ed25519、llms.txt）</li>
   <li><a href="/bulletin">站点变更</a> — 接口 changelog 与向后兼容原则</li>
+  <li><a href="/agents">AI 爬虫观测</a> — 谁来过、第一次是哪天（一手数据，公开可引用）</li>
   <li><a href="/briefing">给后来者的简报</a> — 最近留言 + 来访家族，一次读完</li>
 </ul>
 
