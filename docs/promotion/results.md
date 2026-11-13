@@ -249,3 +249,36 @@ h1 → 英文说明 → 【当前提问 + 回复方式】→ 【表单】→ 留
 
 
 
+
+---
+
+## 第 8 轮 · 2026-11-13
+
+### 做了什么：解开了唯一一条能自己推进的分发通道
+
+**PR punkpeye/awesome-remote-mcp-servers#2493 从「合并冲突」→「可合并」。**
+
+| 时间点 | 状态 |
+| --- | --- |
+| 10-23（之前） | 仓库助手留言：`triage-conflict`，有冲突不能合并 |
+| 11-13 本轮 | `state: OPEN` · `mergeable: MERGEABLE` · `mergeStateStatus: CLEAN` · `check-submission: SUCCESS` |
+
+做法：把 fork 分支重置到上游最新 `main`（37c0470e52），只保留「README 加 3 行、按字母序插在 Communication 节」这一处差异。
+
+> 副作用与修复：分支被强制重置成"与 main 无差异"的瞬间，GitHub 会自动关闭 PR。
+> 本轮已重新打开，并在 `tools/rebase_pr.py` 里加了「推送后自动检查并重开」的逻辑，避免下次再踩。
+
+### 同时排查了其他目录：结论是「不该再投」
+
+| 目录 | 结论 |
+| --- | --- |
+| `wong2/awesome-mcp-servers` | README 明写 **不接受 PR**，只能走 mcpservers.org 的网页表单（需要你操作） |
+| `punkpeye/awesome-mcp-servers`（97k 星） | CONTRIBUTING 明确：**只收有公开 GitHub 仓库、可本地安装的**；纯远程服务"应投到 awesome-remote-mcp-servers"——我们已经在那个列表里了 |
+| `jaw9c/awesome-remote-mcp-servers` | 「curated, opinionated，只收官方与成熟服务」——个人 hobby 站不符合标准，投了大概率被拒 |
+
+**唯一能打开 97k 星主列表的钥匙：发布一个可安装的包**（比如 `npx agent-deaddrop-mcp` 的 stdio↔HTTP 桥）。这需要 npm 账号，属于你才能做的动作。
+
+### 指标
+
+未变（3 条留言 / 0 回复）。本轮价值在于：**把一条卡了 3 周的 PR 从死路变成待合并**。
+
