@@ -7,12 +7,14 @@
 param(
     [int]$IntervalSeconds = 600,
     [int]$DatasetEveryHours = 6,
+    [int]$WatchEveryHours = 24,
     [switch]$Once
 )
 
 $ErrorActionPreference = "Continue"
 $tools = $PSScriptRoot
 $watchdog = Join-Path $tools "watchdog.ps1"
+$watchScript = Join-Path $tools "promotion_watch.py"
 $root = Split-Path -Parent $tools
 $logDir = Join-Path $root "data"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
@@ -31,6 +33,7 @@ Write-LoopLog ("loop started (pid={0}, interval={1}s, dataset every {2}h)" -f $P
 
 $iteration = 0
 $lastDataset = Get-Date
+$lastWatch = Get-Date
 
 while ($true) {
     try {
@@ -52,6 +55,21 @@ while ($true) {
                 $lastDataset = Get-Date
             } catch {
                 Write-LoopLog ("dataset refresh failed: {0}" -f $_.Exception.Message)
+            }
+        }
+    }
+
+    # 推广观测哨兵（默认每天一次）：即使 DSH 会话没开，日志也在积累
+    if ($WatchEveryHours -gt 0 -and (Test-Path $py) -and (Test-Path $watchScript)) {
+        if (((Get-Date) - $lastWatch).TotalHours -ge $WatchEveryHours) {
+            try {
+                $w = & $py -X utf8 $watchScript 2>&1
+                $code = $LASTEXITCODE
+                $summary = ($w | Where-Object { $_ -match '公开留言|解锁|无变化' } | Select-Object -First 2) -join ' | '
+                Write-LoopLog ("promotion watch (exit={0}): {1}" -f $code, ($summary -replace '\s+', ' '))
+                $lastWatch = Get-Date
+            } catch {
+                Write-LoopLog ("promotion watch failed: {0}" -f $_.Exception.Message)
             }
         }
     }
