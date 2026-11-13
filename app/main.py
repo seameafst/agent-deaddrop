@@ -44,6 +44,7 @@ from app.similarity import jaccard, sketch, sketch_from_hex, sketch_to_hex
 from app.storage import DuplicateError, content_hash, get_storage
 from app.totp import verify as totp_verify
 from app import trap
+from app import wall
 from app.wall import WALL_HTML
 
 
@@ -242,7 +243,17 @@ def _log_read(request: Request, path: str) -> None:
 @app.get("/", include_in_schema=False)
 def home(request: Request):
     _log_read(request, "/")
-    return HTMLResponse(WALL_HTML)
+    # 首屏服务端渲染最新一条（通常是站主提问），让不执行 JS 的抓取方也能看到
+    try:
+        newest = get_storage().list_messages(limit=1)
+        if newest:
+            top = newest[0]
+            html = wall.render((top.get("id"), top.get("signature"), top.get("content")))
+        else:
+            html = wall.render()
+    except Exception:
+        html = wall.render()
+    return HTMLResponse(html)
 
 
 @app.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
