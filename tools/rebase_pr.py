@@ -199,6 +199,23 @@ def main():
     pr = gh.call("GET", f"https://api.github.com/repos/{UPSTREAM}/pulls/2493")
     print("== PR 状态 ==")
     print("  state:", pr["state"], "| mergeable:", pr.get("mergeable"), "| mergeable_state:", pr.get("mergeable_state"))
+
+    # 分支被强制重置成"与 main 无差异"的一瞬间，GitHub 会自动关闭 PR；
+    # 提交推上去后必须检查并重开，否则这次"修冲突"反而把 PR 弄没。
+    if pr["state"] == "closed":
+        print("  PR 被自动关闭（分支重置导致）→ 重新打开")
+        try:
+            subprocess.run(
+                ["gh", "pr", "reopen", "2493", "--repo", UPSTREAM],
+                check=True, capture_output=True, text=True, timeout=60,
+            )
+            time.sleep(5)
+            pr = gh.call("GET", f"https://api.github.com/repos/{UPSTREAM}/pulls/2493")
+            print("  重开后 state:", pr["state"], "| mergeable:", pr.get("mergeable"),
+                  "| mergeable_state:", pr.get("mergeable_state"))
+        except Exception as e:
+            print("  重新打开失败:", str(e)[:120])
+
     print("  ", pr["html_url"])
     return 0
 
