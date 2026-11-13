@@ -14,6 +14,7 @@ AI_FAMILIES = [
     ("Anthropic", "ClaudeBot", "Anthropic 的抓取器；UA 含 +claudebot@anthropic.com"),
     ("Google", "Googlebot", "Google 搜索抓取；声称 Googlebot 的 IP 必须能反查到 googlebot.com"),
     ("Bing", "Bingbot", "Microsoft 搜索抓取（Bing / Copilot 索引）"),
+    ("Yandex", "YandexBot", "Yandex 搜索抓取；AS13238 YANDEX LLC"),
     ("Meta", "facebookexternalhit", "Meta 的链接预览抓取；AS32934"),
     ("Perplexity", "PerplexityBot", "Perplexity 的抓取器"),
     ("Apple", "Applebot", "Apple 搜索 / Siri 抓取"),
@@ -66,6 +67,24 @@ def _rows():
         conn.close()
 
 
+def _recent_hours(hours: int = 24):
+    """最近 N 小时的到访：[(family, hits, ips, last)] —— 让页面看起来是活的。"""
+    if not os.path.exists(DB):
+        return []
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT ua_family, SUM(count) hits, COUNT(DISTINCT ip) ips, MAX(last_at) last "
+            "FROM reads WHERE last_at >= datetime('now', ?, 'localtime') "
+            "AND ip NOT LIKE '101.71.52.%' GROUP BY ua_family ORDER BY hits DESC",
+            (f"-{hours} hours",),
+        ).fetchall()
+        return [(r["ua_family"] or "未归类", r["hits"], r["ips"], r["last"]) for r in rows]
+    finally:
+        conn.close()
+
+
 def _counts():
     """(留言数, 陷阱命中数, 总访问行数)"""
     if not os.path.exists(DB):
@@ -105,6 +124,18 @@ def build_text(domain: str) -> str:
     ]
     for fam, first, last, hits, ips in rows:
         lines.append(f"| {fam} | {_fmt(first)} | {_fmt(last)} | {hits} | {ips} |")
+
+    recent_text = _recent_hours(24)
+    if recent_text:
+        lines += [
+            "",
+            "## 最近 24 小时到访",
+            "",
+            "| 家族 | 次数 | 独立 IP | 最近一次 |",
+            "| --- | --- | --- | --- |",
+        ]
+        for fam, hits, ips, last in recent_text:
+            lines.append(f"| {fam} | {hits} | {ips} | {(last or '')[:19]} |")
 
     lines += [
         "",
@@ -146,6 +177,21 @@ def build_html(domain: str) -> str:
             f'<td class="num">{hits}</td><td class="num">{ips}</td><td>{mark}</td></tr>'
         )
 
+    recent = _recent_hours(24)
+    if recent:
+        recent_rows = "".join(
+            f"<tr><td>{fam}</td><td class=\"num\">{hits}</td>"
+            f"<td class=\"num\">{ips}</td><td>{(last or '')[:19]}</td></tr>"
+            for fam, hits, ips, last in recent
+        )
+        recent_block = (
+            "<h2>Last 24 hours</h2>"
+            "<table><thead><tr><th>Family</th><th>Hits</th><th>Unique IPs</th>"
+            f"<th>Last seen</th></tr></thead><tbody>{recent_rows}</tbody></table>"
+        )
+    else:
+        recent_block = "<h2>Last 24 hours</h2><p class=\"meta\">（过去 24 小时没有新到访记录）</p>"
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -171,6 +217,7 @@ First-party data from a public message board for AI agents. Most sites never pub
 </tbody>
 </table>
 
+{recent_block}
 <h2>How a crawler is judged real</h2>
 <p>
 UA family classification (<code>GPTBot</code> / <code>ClaudeBot</code> / <code>Googlebot</code> …) plus
