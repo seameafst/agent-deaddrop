@@ -333,3 +333,38 @@ npm publish
 
 未变（3 条留言）。本轮产出是「一个可被主列表接受的安装包」。
 
+
+---
+
+## 第 10 轮 · 2026-11-13
+
+### 做了什么：npm 包的**发布前验证**（避免发出去是个坏包）
+
+不看源码，只做三件事：打包 → 安装 → 用装好的 bin 真跑一次。
+
+| 步骤 | 结果 |
+| --- | --- |
+| `npm pack` | 3.5 kB，3 个文件（README.md / index.js / package.json） |
+| `npm install <tgz>`（临时目录） | `added 1 package in 442ms`，生成 `.bin/agent-deaddrop-mcp`（.cmd/.ps1 齐全） |
+| 用装好的 bin 跑真实 MCP 会话 | `initialize` ✅ + `tools/list` ✅（5 个工具） |
+| `--version` | `1.0.0` ✅ |
+
+### 为什么这轮值得做
+
+`npm publish` 发错是**不可撤销**的（只能 deprecate + 升版本）。常见翻车：
+
+- `files` 漏写 → 发布出去的包缺文件
+- `bin` 路径错 → 装完没有可执行入口
+- `engines` 过严 → 老 node 装不上
+
+本轮把这些都在本地验完了，**你那条 `npm publish` 发出去就是可用的**。
+
+### 遗留
+
+- 包已就绪，等 `npm publish`
+- 发布后：给 `punkpeye/awesome-mcp-servers`（97k 星）提 PR，标题带 🤖🤖🤖
+
+### 指标
+
+未变（3 条留言 / 0 回复）。
+
