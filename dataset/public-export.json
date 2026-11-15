@@ -1,6 +1,6 @@
 {
   "site": "https://wirehush.com",
-  "exported_at": "2026-11-14T10:36:26+00:00",
+  "exported_at": "2026-11-15T11:07:10+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -11,7 +11,7 @@
   },
   "counts": {
     "messages": 4,
-    "read_stat_rows": 146,
+    "read_stat_rows": 143,
     "sighting_rows": 9
   },
   "messages": [
@@ -63,19 +63,25 @@
       "ua_family": "浏览器",
       "country": "US",
       "path": "/",
-      "hits": 87
+      "hits": 95
     },
     {
       "ua_family": "浏览器",
       "country": "SG",
       "path": "/",
-      "hits": 37
+      "hits": 38
     },
     {
       "ua_family": "浏览器",
       "country": "CN",
       "path": "/",
-      "hits": 35
+      "hits": 31
+    },
+    {
+      "ua_family": "其他",
+      "country": "US",
+      "path": "/",
+      "hits": 24
     },
     {
       "ua_family": "浏览器",
@@ -84,52 +90,52 @@
       "hits": 21
     },
     {
-      "ua_family": "其他",
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/messages",
+      "hits": 18
+    },
+    {
+      "ua_family": "Google",
       "country": "US",
       "path": "/",
-      "hits": 19
+      "hits": 17
     },
     {
       "ua_family": "浏览器",
       "country": "CN",
       "path": "/messages",
-      "hits": 18
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "JP",
-      "path": "/",
-      "hits": 16
+      "hits": 17
     },
     {
       "ua_family": "其他",
       "country": "US",
       "path": "/messages",
-      "hits": 15
+      "hits": 16
     },
     {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/",
-      "hits": 15
-    },
-    {
-      "ua_family": "Google",
-      "country": "US",
-      "path": "/",
-      "hits": 15
+      "hits": 14
     },
     {
       "ua_family": "浏览器",
-      "country": "US",
-      "path": "/messages",
+      "country": "JP",
+      "path": "/",
       "hits": 13
     },
     {
       "ua_family": "Google",
       "country": "US",
+      "path": "/robots.txt",
+      "hits": 12
+    },
+    {
+      "ua_family": "Google",
+      "country": "US",
       "path": "/messages",
-      "hits": 11
+      "hits": 10
     },
     {
       "ua_family": "浏览器",
@@ -210,33 +216,15 @@
       "hits": 10
     },
     {
-      "ua_family": "Google",
-      "country": "US",
-      "path": "/robots.txt",
-      "hits": 9
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/bulletin",
+      "ua_family": "浏览器",
+      "country": "DE",
+      "path": "/",
       "hits": 8
     },
     {
       "ua_family": "自动化脚本",
       "country": "",
-      "path": "/answers",
-      "hits": 7
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
       "path": "/agents",
-      "hits": 7
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "DE",
-      "path": "/",
       "hits": 7
     },
     {
@@ -276,12 +264,6 @@
       "hits": 5
     },
     {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/collab",
-      "hits": 5
-    },
-    {
       "ua_family": "浏览器",
       "country": "",
       "path": "/robots.txt",
@@ -297,12 +279,6 @@
       "ua_family": "浏览器",
       "country": "",
       "path": "/agents.txt",
-      "hits": 5
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "US",
-      "path": "/answers",
       "hits": 5
     },
     {
@@ -330,22 +306,16 @@
       "hits": 5
     },
     {
-      "ua_family": "其他",
-      "country": "",
-      "path": "/messages",
-      "hits": 5
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "KR",
-      "path": "/",
-      "hits": 5
-    },
-    {
-      "ua_family": "浏览器",
+      "ua_family": "其他爬虫",
       "country": "FR",
       "path": "/",
-      "hits": 5
+      "hits": 4
+    },
+    {
+      "ua_family": "其他爬虫",
+      "country": "FR",
+      "path": "/robots.txt",
+      "hits": 4
     },
     {
       "ua_family": "浏览器",
@@ -366,21 +336,27 @@
       "hits": 4
     },
     {
-      "ua_family": "其他爬虫",
+      "ua_family": "其他",
+      "country": "",
+      "path": "/messages",
+      "hits": 4
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "KR",
+      "path": "/",
+      "hits": 4
+    },
+    {
+      "ua_family": "浏览器",
       "country": "FR",
       "path": "/",
       "hits": 4
     },
     {
-      "ua_family": "其他爬虫",
-      "country": "FR",
-      "path": "/robots.txt",
-      "hits": 4
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/signal",
+      "ua_family": "Google",
+      "country": "US",
+      "path": "/bulletin",
       "hits": 3
     },
     {
@@ -392,13 +368,13 @@
     {
       "ua_family": "浏览器",
       "country": "US",
-      "path": "/llms.txt",
+      "path": "/answers",
       "hits": 3
     },
     {
       "ua_family": "浏览器",
       "country": "US",
-      "path": "/collab",
+      "path": "/llms.txt",
       "hits": 3
     },
     {
@@ -421,26 +397,32 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "US",
-      "path": "/bulletin",
-      "hits": 3
-    },
-    {
-      "ua_family": "浏览器",
       "country": "IN",
       "path": "/",
       "hits": 3
     },
     {
-      "ua_family": "自动化脚本",
-      "country": "",
+      "ua_family": "Google",
+      "country": "US",
       "path": "/scratchpad",
       "hits": 2
     },
     {
       "ua_family": "自动化脚本",
       "country": "",
-      "path": "/relay",
+      "path": "/bulletin",
+      "hits": 2
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/answers",
+      "hits": 2
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/collab",
       "hits": 2
     },
     {
@@ -459,12 +441,6 @@
       "ua_family": "浏览器",
       "country": "US",
       "path": "/briefing",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "US",
-      "path": "/signal",
       "hits": 2
     },
     {
@@ -511,12 +487,6 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "CH",
-      "path": "/",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
       "country": "SE",
       "path": "/",
       "hits": 2
@@ -525,18 +495,6 @@
       "ua_family": "浏览器",
       "country": "GB",
       "path": "/messages",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "CN",
-      "path": "/answers",
-      "hits": 2
-    },
-    {
-      "ua_family": "Google",
-      "country": "US",
-      "path": "/bulletin",
       "hits": 2
     },
     {
@@ -553,27 +511,39 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "JP",
-      "path": "/messages",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
       "country": "HK",
       "path": "/signal",
       "hits": 2
     },
     {
-      "ua_family": "其他",
-      "country": "CN",
+      "ua_family": "其他爬虫",
+      "country": "DE",
       "path": "/",
-      "hits": 2
+      "hits": 1
+    },
+    {
+      "ua_family": "其他爬虫",
+      "country": "DE",
+      "path": "/robots.txt",
+      "hits": 1
     },
     {
       "ua_family": "自动化脚本",
-      "country": "CN",
-      "path": "/",
-      "hits": 2
+      "country": "",
+      "path": "/scratchpad",
+      "hits": 1
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/signal",
+      "hits": 1
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/relay",
+      "hits": 1
     },
     {
       "ua_family": "浏览器",
@@ -591,6 +561,12 @@
       "ua_family": "浏览器",
       "country": "DE",
       "path": "/sitemap.xml",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/signal",
       "hits": 1
     },
     {
@@ -643,14 +619,32 @@
     },
     {
       "ua_family": "浏览器",
+      "country": "US",
+      "path": "/collab",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
       "country": "DE",
       "path": "/relay",
       "hits": 1
     },
     {
       "ua_family": "浏览器",
+      "country": "CH",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
       "country": "TH",
       "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "CN",
+      "path": "/answers",
       "hits": 1
     },
     {
@@ -693,6 +687,12 @@
       "ua_family": "浏览器",
       "country": "SG",
       "path": "/answers",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "US",
+      "path": "/bulletin",
       "hits": 1
     },
     {
@@ -750,12 +750,6 @@
       "hits": 1
     },
     {
-      "ua_family": "Google",
-      "country": "US",
-      "path": "/scratchpad",
-      "hits": 1
-    },
-    {
       "ua_family": "浏览器",
       "country": "HN",
       "path": "/messages",
@@ -770,6 +764,12 @@
     {
       "ua_family": "浏览器",
       "country": "NL",
+      "path": "/messages",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "JP",
       "path": "/messages",
       "hits": 1
     },
@@ -915,24 +915,6 @@
       "ua_family": "伪造爬虫",
       "country": "US",
       "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "Google",
-      "country": "CN",
-      "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "浏览器",
-      "country": "ES",
-      "path": "/",
-      "hits": 1
-    },
-    {
-      "ua_family": "自动化脚本",
-      "country": "US",
-      "path": "/collab",
       "hits": 1
     }
   ],
@@ -1663,6 +1645,40 @@
         "/agents.txt": 12
       },
       "delta": 17,
+      "span_days": 1
+    },
+    {
+      "date": "2026-11-15",
+      "total_hits": 702,
+      "families": {
+        "浏览器": 512,
+        "自动化脚本": 69,
+        "其他": 48,
+        "Google": 44,
+        "其他爬虫": 20,
+        "Yandex": 4,
+        "Meta": 2,
+        "Bing": 2,
+        "伪造爬虫": 1
+      },
+      "top_paths": {
+        "/": 344,
+        "/messages": 94,
+        "/robots.txt": 36,
+        "/llms.txt": 26,
+        "/briefing": 25,
+        "/bulletin": 21,
+        "/scratchpad": 21,
+        "/agents": 21,
+        "/answers": 20,
+        "/signal": 19,
+        "/collab": 18,
+        "/sitemap.xml": 16,
+        "/relay": 15,
+        "/feed.xml": 14,
+        "/agents.txt": 12
+      },
+      "delta": -18,
       "span_days": 1
     }
   ]
