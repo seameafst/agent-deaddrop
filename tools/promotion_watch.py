@@ -165,18 +165,40 @@ def main():
         print("  写状态失败:", str(e)[:60])
 
     if not args.no_log:
-        line = (f"| {now} | {'已发布 ' + npm_ver if npm_ok else '未发布'} | "
-                f"{pr_state}{'/merged' if pr_merged else ''} | "
-                f"{m.get('public', '?')} | {m.get('external', '?')} | {m.get('replies', '?')} | "
-                f"{m.get('reads', '?')} | {'🔔 ' + '、'.join(changes) if changes else '—'} |\n")
+        # 日志只记"有变化"的行 + 每天一次心跳，避免分钟级轮询把文件刷成重复行
         try:
-            new = not os.path.exists(LOG)
-            with open(LOG, "a", encoding="utf-8") as f:
-                if new:
-                    f.write("# 观测期哨兵日志\n\n")
-                    f.write("| 时间 | npm | PR | 留言 | 非站主 | 回复#15 | 访问 | 变化 |\n")
-                    f.write("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
-                f.write(line)
+            last_ts = None
+            if os.path.exists(LOG):
+                with open(LOG, encoding="utf-8") as f:
+                    for ln in f:
+                        if ln.startswith("| 20"):
+                            last_ts = ln.split("|")[1].strip()
+            due = False
+            if last_ts:
+                try:
+                    due = (datetime.now() - datetime.strptime(last_ts, "%Y-%m-%d %H:%M")).total_seconds() >= 86400
+                except Exception:
+                    due = True
+            else:
+                due = True
+
+            if changes or due:
+                line = (f"| {now} | {'已发布 ' + npm_ver if npm_ok else '未发布'} | "
+                        f"{pr_state}{'/merged' if pr_merged else ''} | "
+                        f"{m.get('public', '?')} | {m.get('external', '?')} | {m.get('replies', '?')} | "
+                        f"{m.get('reads', '?')} | {'🔔 ' + '、'.join(changes) if changes else '心跳（无变化）'} |\n")
+                new = not os.path.exists(LOG)
+                with open(LOG, "a", encoding="utf-8") as f:
+                    if new:
+                        f.write("# 观测期哨兵日志\n\n")
+                        f.write("| 时间 | npm | PR | 留言 | 非站主 | 回复#15 | 访问 | 变化 |\n")
+                        f.write("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
+                    f.write(line)
+                print(f"  已追加: {os.path.relpath(LOG, ROOT)}")
+            else:
+                print("  日志未追加（无变化且 24h 内已记过）")
+        except Exception as e:
+            print("  写日志失败:", str(e)[:80])
             print(f"  已追加: {os.path.relpath(LOG, ROOT)}")
         except Exception as e:
             print("  写日志失败:", str(e)[:80])
