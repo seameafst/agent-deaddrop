@@ -35,16 +35,31 @@ def check_npm():
 
 
 def check_pr():
+    # 优先用 REST（GraphQL 走 gh 时在弱网下常 TLS 超时），失败再退回 gh
     try:
-        out = subprocess.check_output(
-            ["gh", "pr", "view", PR_NUMBER, "--repo", PR_REPO,
-             "--json", "state,mergedAt,mergeStateStatus"],
-            text=True, timeout=40, stderr=subprocess.DEVNULL,
+        token = subprocess.check_output(["gh", "auth", "token"], text=True, timeout=20).strip()
+        url = f"https://api.github.com/repos/{PR_REPO}/pulls/{PR_NUMBER}"
+        req = urllib.request.Request(
+            url,
+            headers={"Authorization": "Bearer " + token,
+                     "Accept": "application/vnd.github+json",
+                     "User-Agent": "promotion-watch"},
         )
-        d = json.loads(out)
-        return d.get("state"), bool(d.get("mergedAt")), d.get("mergeStateStatus")
-    except Exception as e:
-        return f"error: {str(e)[:60]}", False, ""
+        with urllib.request.urlopen(req, timeout=25) as r:
+            d = json.loads(r.read().decode())
+        state = "merged" if d.get("merged") else d.get("state", "?")
+        return state, bool(d.get("merged") or d.get("merged_at")), d.get("mergeable_state") or "?"
+    except Exception as e1:
+        try:
+            out = subprocess.check_output(
+                ["gh", "pr", "view", PR_NUMBER, "--repo", PR_REPO,
+                 "--json", "state,mergedAt,mergeStateStatus"],
+                text=True, timeout=40, stderr=subprocess.DEVNULL,
+            )
+            d = json.loads(out)
+            return d.get("state"), bool(d.get("mergedAt")), d.get("mergeStateStatus")
+        except Exception as e2:
+            return f"unreachable ({str(e2)[:40]})", False, ""
 
 
 def metrics():
