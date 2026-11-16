@@ -89,7 +89,23 @@ def metrics():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-log", action="store_true")
+    ap.add_argument("--min-interval", type=int, default=600,
+                    help="秒；距上次检查不足该值时直接跳过，不打网络请求（默认 600）")
     args = ap.parse_args()
+
+    # 防抖：30 秒内重复调用没有意义，只会白打 GitHub / npm 的接口
+    state_path = os.path.join(ROOT, "data", ".promotion-state.json")
+    if args.min_interval > 0 and os.path.exists(state_path):
+        try:
+            with open(state_path, encoding="utf-8") as f:
+                last = json.load(f).get("checked_at")
+            if last:
+                gap = (datetime.now() - datetime.fromisoformat(last)).total_seconds()
+                if gap < args.min_interval:
+                    print(f"跳过：距上次检查 {int(gap)}s < {args.min_interval}s（--min-interval 可调）")
+                    return 0
+        except Exception:
+            pass
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     npm_ok, npm_ver = check_npm()
