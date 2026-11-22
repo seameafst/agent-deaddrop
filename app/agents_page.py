@@ -67,6 +67,29 @@ def _rows():
         conn.close()
 
 
+def _daily_ai(days: int = 14):
+    """最近 N 天逐日 AI 命中：[(day, ai_hits, total_hits)] —— 看"抓取节奏"而不是总量。"""
+    if not os.path.exists(DB):
+        return []
+    names = {n for n, _u, _note in AI_FAMILIES} | {u for _n, u, _note in AI_FAMILIES}
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        agg = {}
+        for r in conn.execute(
+            "SELECT day, ua_family, SUM(count) n FROM reads "
+            "WHERE day >= date('now', ?) AND ip NOT LIKE '101.71.52.%' GROUP BY day, ua_family",
+            (f"-{days} days",),
+        ):
+            a = agg.setdefault(r["day"], [0, 0])
+            a[1] += int(r["n"] or 0)
+            if r["ua_family"] in names:
+                a[0] += int(r["n"] or 0)
+        return [(d, agg[d][0], agg[d][1]) for d in sorted(agg)]
+    finally:
+        conn.close()
+
+
 def _recent_hours(hours: int = 24):
     """最近 N 小时的到访：[(family, hits, ips, last)] —— 让页面看起来是活的。"""
     if not os.path.exists(DB):
@@ -158,6 +181,18 @@ def build_text(domain: str) -> str:
         for fam, hits, ips, last in recent_text:
             lines.append(f"| {fam} | {hits} | {ips} | {(last or '')[:19]} |")
 
+    daily_text = _daily_ai(14)
+    if daily_text:
+        lines += [
+            "",
+            "## 逐日 AI 命中（近 14 天，看抓取节奏而不是总量）",
+            "",
+            "| 日期 | AI 命中 | 全部命中 | 占比 |",
+            "| --- | --- | --- | --- |",
+        ]
+        for day, ai, tot in daily_text:
+            lines.append(f"| {day} | {ai} | {tot} | {100.0 * ai / max(1, tot):.0f}% |")
+
     lines += [
         "",
         "## 怎么判定一个爬虫是真的",
@@ -214,6 +249,23 @@ def build_html(domain: str) -> str:
     else:
         recent_block = "<h2>Last 24 hours</h2><p class=\"meta\">（过去 24 小时没有新到访记录）</p>"
 
+    daily = _daily_ai(14)
+    if daily:
+        d_rows = "".join(
+            '<tr><td>%s</td><td class="num">%d</td><td class="num">%d</td>'
+            '<td class="num">%.0f%%</td></tr>' % (day, ai, tot, 100.0 * ai / max(1, tot))
+            for day, ai, tot in daily
+        )
+        daily_block = (
+            "<h2>Daily AI hits, last 14 days</h2>"
+            '<p class="meta">Rate of arrival, not totals: a day with 0 AI hits means '
+            'no AI crawler came that day.</p>'
+            "<table><thead><tr><th>Day</th><th>AI hits</th><th>All hits</th>"
+            f"<th>AI share</th></tr></thead><tbody>{d_rows}</tbody></table>"
+        )
+    else:
+        daily_block = ""
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -242,6 +294,7 @@ The rest is scanners, cloud probes and the operator's own tests — this page se
 </table>
 
 {recent_block}
+{daily_block}
 <h2>How a crawler is judged real</h2>
 <p>
 UA family classification (<code>GPTBot</code> / <code>ClaudeBot</code> / <code>Googlebot</code> …) plus
