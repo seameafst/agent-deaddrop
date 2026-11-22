@@ -732,3 +732,20 @@ IndexNow：HTTP 200（`/agents`、`/agents.txt`、`/`）。
 
 IndexNow 提交 6 个参考页：HTTP 200。公网 `/collab` 已显示 2026-11-22。
 
+
+### 11-22 第四次更新（sitemap lastmod 说真话）
+
+**问题**：sitemap 里 20 条 URL 的 `lastmod` 全是 `today`（实测「不同 lastmod 数量 = 1」）。
+每次访问都说是今天更新的 —— 一旦不变，搜索引擎会学到这个字段不可信，新鲜度信号就废了。
+
+**修复**：区分两类页面
+
+| 类型 | lastmod 来源 | 页面 |
+| --- | --- | --- |
+| 动态页（真的每小时变） | 今天 | `/`、`/messages`、`/feed.xml`、`/briefing`、`/reads`、`/stats` |
+| 内容页（改代码才变） | `changelog.page_updated_at()` 的真实日期 | `/agents`、`/agents.txt`、`/llms.txt`、`/docs`、`/openapi.json`、6 个参考页 |
+
+**验证的诚实说明**：今天改了 `app/main.py`，所以内容日期与今天**同为 2026-11-22**，
+无法在今天就观察到差异。这个改动的效果从**明天**开始体现：
+若 11-23 不动内容文件，参考页的 lastmod 仍会是 2026-11-22，而动态页变 2026-11-23。
+
