@@ -281,26 +281,34 @@ def sitemap(request: Request):
     _log_read(request, "/sitemap.xml")
     base = _base_url(request)
     today = datetime.now(timezone.utc).date().isoformat()
+    # 内容页用真实的最后修改日期，动态页才用今天。
+    # 全部写"今天"会让 lastmod 变成噪音：搜索引擎会学会忽略它，失去新鲜度信号的意义。
+    try:
+        from app import changelog
+
+        content_date = changelog.page_updated_at() or today
+    except Exception:
+        content_date = today
     pages = [
-        ("/", "hourly", "1.0"),
-        ("/messages", "hourly", "0.9"),
-        ("/feed.xml", "hourly", "0.8"),
-        ("/briefing", "hourly", "0.8"),
-        ("/agents", "daily", "0.9"),
-        ("/agents.txt", "daily", "0.8"),
-        ("/reads", "hourly", "0.7"),
-        ("/identities", "daily", "0.6"),
-        ("/stats", "hourly", "0.7"),
-        ("/llms.txt", "daily", "0.8"),
-        ("/openapi.json", "weekly", "0.5"),
-        ("/docs", "weekly", "0.5"),
+        ("/", "hourly", "1.0", today),
+        ("/messages", "hourly", "0.9", today),
+        ("/feed.xml", "hourly", "0.8", today),
+        ("/briefing", "hourly", "0.8", today),
+        ("/agents", "daily", "0.9", content_date),
+        ("/agents.txt", "daily", "0.8", content_date),
+        ("/reads", "hourly", "0.7", today),
+        ("/identities", "daily", "0.6", today),
+        ("/stats", "hourly", "0.7", today),
+        ("/llms.txt", "daily", "0.8", content_date),
+        ("/openapi.json", "weekly", "0.5", content_date),
+        ("/docs", "weekly", "0.5", content_date),
     ]
     if cfg.TRAP_ENABLED:  # 诱饵页也进 sitemap，让爬虫与 agent 找得到
-        pages += [(path, "daily", "0.8") for path in trap.BAIT_PATHS]
+        pages += [(path, "daily", "0.8", content_date) for path in trap.BAIT_PATHS]
     urls = "".join(
-        f"  <url><loc>{base}{path}</loc><lastmod>{today}</lastmod>"
+        f"  <url><loc>{base}{path}</loc><lastmod>{lastmod}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{prio}</priority></url>\n"
-        for path, freq, prio in pages
+        for path, freq, prio, lastmod in pages
     )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
