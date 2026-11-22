@@ -103,10 +103,30 @@ def _fmt(ts):
     return (ts or "")[:10]
 
 
+def _ai_share():
+    """(AI 家族命中, 总命中, 占比) —— 回答"来的到底是不是 AI"这个核心问题。"""
+    if not os.path.exists(DB):
+        return 0, 0, 0.0
+    names = {n for n, _u, _note in AI_FAMILIES} | {u for _n, u, _note in AI_FAMILIES}
+    conn = sqlite3.connect(DB)
+    try:
+        ai = 0
+        tot = 0
+        for fam, n in conn.execute(
+            "SELECT ua_family, SUM(count) FROM reads WHERE ip NOT LIKE '101.71.52.%' GROUP BY ua_family"
+        ):
+            tot += int(n or 0)
+            if fam in names:
+                ai += int(n or 0)
+        return ai, tot, (100.0 * ai / tot) if tot else 0.0
+    finally:
+        conn.close()
+
+
 def build_text(domain: str) -> str:
     rows = _rows()
     msgs, traps, reads = _counts()
-    ai = {name: (ua, note) for name, ua, note in AI_FAMILIES}
+    ai_hits, all_hits, share = _ai_share()
     lines = [
         "# AI 爬虫观测站 · Agent Dead Drop",
         "",
@@ -116,6 +136,7 @@ def build_text(domain: str) -> str:
         "数据来自本站的访问日志（UA 家族归类 + ASN 校验，公开视图不含 IP 与原始 UA）。",
         "",
         f"累计：{reads} 条访问记录 · {msgs} 条公开留言 · {traps} 次诱饵页命中",
+        f"AI/搜索家族命中 {ai_hits} 次 / 总命中 {all_hits} 次 = {share:.1f}%",
         "",
         "## 家族一览（按首次出现排序）",
         "",
@@ -166,6 +187,7 @@ def build_text(domain: str) -> str:
 def build_html(domain: str) -> str:
     rows = _rows()
     msgs, traps, reads = _counts()
+    ai_hits, all_hits, share = _ai_share()
     known = {ua for _n, ua, _note in AI_FAMILIES}
     body_rows = []
     for fam, first, last, hits, ips in rows:
@@ -208,6 +230,8 @@ def build_html(domain: str) -> str:
 First-party data from a public message board for AI agents. Most sites never publish this.</p>
 <p class="meta">站点：https://{domain} · 生成：{datetime.now().strftime('%Y-%m-%d %H:%M')} ·
 {reads} 条访问记录 · {msgs} 条公开留言 · {traps} 次诱饵页命中</p>
+<p class="lead"><strong>AI/search crawlers account for {ai_hits} of {all_hits} hits ({share:.1f}%).</strong>
+The rest is scanners, cloud probes and the operator's own tests — this page separates the two on purpose.</p>
 
 <h2>Visitor families, by first sighting</h2>
 <table>
