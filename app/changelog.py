@@ -34,19 +34,34 @@ def available() -> bool:
 
 
 def page_updated_at() -> str:
-    """页面内容最后一次更新的日期（YYYY-MM-DD）。git 不可用时用文件修改时间。"""
+    """页面内容最后一次更新的日期（YYYY-MM-DD）。git 不可用时用文件修改时间。
+
+    看的是一组"内容文件"，不是单个 trap.py：
+    参考页的正文会随 agents_page.py / wall.py / main.py 的改动一起变，
+    只盯 trap.py 会让页面上的"最后更新"永远停在旧日期——对爬虫是错误的新鲜度信号。
+    """
+    content_files = ["app/trap.py", "app/agents_page.py", "app/wall.py", "app/main.py"]
+    best = ""
     try:
-        out = _git("log", "-1", "--date=short", "--pretty=format:%ad", "--", "app/trap.py")
+        out = _git("log", "-1", "--date=short", "--pretty=format:%ad", "--", *content_files)
         if out.returncode == 0:
             text = out.stdout.strip().splitlines()
             if text and text[0]:
-                return text[0].strip()
+                best = text[0].strip()
     except Exception:
         pass
+    if best:
+        return best
     try:
-        target = ROOT / "app" / "trap.py"
-        if target.exists():
-            return datetime.fromtimestamp(target.stat().st_mtime, timezone.utc).date().isoformat()
+        newest = None
+        for rel in content_files:
+            target = ROOT / rel
+            if target.exists():
+                mt = target.stat().st_mtime
+                if newest is None or mt > newest:
+                    newest = mt
+        if newest is not None:
+            return datetime.fromtimestamp(newest, timezone.utc).date().isoformat()
     except Exception:
         pass
     return date.today().isoformat()
