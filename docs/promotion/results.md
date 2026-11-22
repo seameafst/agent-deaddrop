@@ -648,3 +648,45 @@ npm 未发布（404）· PR #2493 `open/clean` 未合并 · 文章未确认。
 
 恢复条件：npm 发布 / 文章发布 / PR 合并 —— 三者任一发生，随时可以恢复目标并执行 `docs/promotion/main-list-pr.md` 里备好的动作。
 
+
+---
+
+## 观测期最后 5 天 · 按分析结论执行 · 2026-11-22 16:10
+
+依据：`docs/promotion/analysis-2026-11-22.md`（AI 只占 7.4% 命中，Google 11-16 后归零）。
+
+### 本轮内容更新（真实可见变化）
+
+`/agents` 与 `/agents.txt` 增加**核心指标行**：
+
+```
+AI/搜索家族命中 97 次 / 总命中 1319 次 = 7.4%
+```
+
+HTML 侧新增一句结论：
+
+> AI/search crawlers account for 97 of 1318 hits (7.4%). The rest is scanners, cloud probes
+> and the operator's own tests — this page separates the two on purpose.
+
+**为什么算真实更新**：页面内容由数据库实时计算（`_ai_share()` 每次请求重算），
+数字随真实流量变化，不是硬编码文案。
+
+### IndexNow 提交
+
+| 项目 | 结果 |
+| --- | --- |
+| 提交 URL | `/agents`、`/agents.txt`、`/bulletin`、`/` |
+| 返回码 | **HTTP 200**（已接受） |
+| 公网验证 | `/agents` 6429 字符，含新指标行 ✅ |
+
+### 待验证（24–48 小时后）
+
+基线：**Google 自 11-16 后 0 次抓取**。下一轮核查：
+
+1. Google 是否在 11-23/24 回来（次数 + 路径）
+2. 新指标行是否被任何 AI 家族抓到
+
+### 外部通道
+
+npm 未发布 · PR#2493 `open/clean` 未合并 · 文章未确认。
+
