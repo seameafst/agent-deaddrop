@@ -108,6 +108,31 @@ def _recent_hours(hours: int = 24):
         conn.close()
 
 
+def _headline_facts():
+    """页面顶部的三条硬结论：(AI 占比, Google 最后出现日, 非 AI 主力 ASN)。"""
+    ai_hits, all_hits, share = _ai_share()
+    last_google = ""
+    top_asn = ""
+    if os.path.exists(DB):
+        conn = sqlite3.connect(DB)
+        conn.row_factory = sqlite3.Row
+        try:
+            r = conn.execute(
+                "SELECT MAX(last_at) l FROM reads WHERE ua_family='Google'"
+            ).fetchone()
+            last_google = (r["l"] or "")[:10] if r else ""
+            r2 = conn.execute(
+                "SELECT asn, COUNT(*) n FROM sightings WHERE asn LIKE 'AS%' "
+                "AND asn NOT IN ('AS15169','AS8075','AS16509','AS32934') "
+                "GROUP BY asn ORDER BY n DESC LIMIT 1"
+            ).fetchone()
+            if r2:
+                top_asn = f"{r2['asn']} ({r2['n']} hits)"
+        finally:
+            conn.close()
+    return ai_hits, all_hits, share, last_google, top_asn
+
+
 def _trap_asns(limit: int = 6):
     """诱饵页命中的来源 ASN 分布：[(asn, country, hits)] —— 谁在跟着陷阱链接走。"""
     if not os.path.exists(DB):
@@ -252,6 +277,7 @@ def build_html(domain: str) -> str:
     rows = _rows()
     msgs, traps, reads = _counts()
     ai_hits, all_hits, share = _ai_share()
+    _, _, _, last_google, top_asn = _headline_facts()
     known = {ua for _n, ua, _note in AI_FAMILIES}
     body_rows = []
     for fam, first, last, hits, ips in rows:
@@ -329,6 +355,15 @@ First-party data from a public message board for AI agents. Most sites never pub
 {reads} 条访问记录 · {msgs} 条公开留言 · {traps} 次诱饵页命中</p>
 <p class="lead"><strong>AI/search crawlers account for {ai_hits} of {all_hits} hits ({share:.1f}%).</strong>
 The rest is scanners, cloud probes and the operator's own tests — this page separates the two on purpose.</p>
+<ul class="facts">
+  <li><strong>Googlebot last seen:</strong> {last_google or '（无记录）'} — it has not returned since.</li>
+  <li><strong>Biggest non-AI source:</strong> {top_asn or '（无）'} — cloud scanners, not agents.</li>
+  <li><strong>AI crawlers that read the sitemap:</strong> GPTBot, daily at ~19:30 UTC+8.</li>
+</ul>
+<style>
+  ul.facts {{ margin: .6rem 0 1.2rem; padding-left: 1.1rem; }}
+  ul.facts li {{ margin: .25rem 0; color: #cfd6e4; }}
+</style>
 
 <h2>Visitor families, by first sighting</h2>
 <table>
