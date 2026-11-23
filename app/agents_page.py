@@ -108,6 +108,23 @@ def _recent_hours(hours: int = 24):
         conn.close()
 
 
+def _trap_asns(limit: int = 6):
+    """诱饵页命中的来源 ASN 分布：[(asn, country, hits)] —— 谁在跟着陷阱链接走。"""
+    if not os.path.exists(DB):
+        return []
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT asn, country, COUNT(*) n FROM sightings "
+            "WHERE asn IS NOT NULL AND asn != '' GROUP BY asn ORDER BY n DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [(r["asn"] or "-", r["country"] or "-", r["n"]) for r in rows]
+    finally:
+        conn.close()
+
+
 def _counts():
     """(留言数, 陷阱命中数, 总访问行数)"""
     if not os.path.exists(DB):
@@ -193,6 +210,18 @@ def build_text(domain: str) -> str:
         for day, ai, tot in daily_text:
             lines.append(f"| {day} | {ai} | {tot} | {100.0 * ai / max(1, tot):.0f}% |")
 
+    asn_text = _trap_asns()
+    if asn_text:
+        lines += [
+            "",
+            "## 诱饵命中的来源 ASN（谁在跟着链接走）",
+            "",
+            "| ASN | 归属地 | 命中次数 |",
+            "| --- | --- | --- |",
+        ]
+        for asn, cc, n in asn_text:
+            lines.append(f"| {asn} | {cc} | {n} |")
+
     lines += [
         "",
         "## 怎么判定一个爬虫是真的",
@@ -266,6 +295,22 @@ def build_html(domain: str) -> str:
     else:
         daily_block = ""
 
+    asns = _trap_asns()
+    if asns:
+        a_rows = "".join(
+            '<tr><td>%s</td><td>%s</td><td class="num">%d</td></tr>' % (asn, cc, n)
+            for asn, cc, n in asns
+        )
+        asn_block = (
+            '<h2>Where the trap hits come from</h2>'
+            '<p class="meta">Bait pages are followed mostly by cloud-hosted scanners, '
+            'not by AI crawlers. Operator test traffic is excluded.</p>'
+            '<table><thead><tr><th>ASN</th><th>Country</th><th>Hits</th></tr></thead>'
+            '<tbody>' + a_rows + '</tbody></table>'
+        )
+    else:
+        asn_block = ''
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -295,6 +340,7 @@ The rest is scanners, cloud probes and the operator's own tests — this page se
 
 {recent_block}
 {daily_block}
+{asn_block}
 <h2>How a crawler is judged real</h2>
 <p>
 UA family classification (<code>GPTBot</code> / <code>ClaudeBot</code> / <code>Googlebot</code> …) plus
