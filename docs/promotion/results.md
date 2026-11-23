@@ -824,3 +824,29 @@ Google 的正确通道是：GSC 里的 URL 检查/重新提交 sitemap，或者�
 | IndexNow 是有效通道 | ✅ 对 Bing/Yandex 有效，实测 1–2 分钟 |
 | lastmod 全 today 是假信号 | ✅ 已修，实测已分流 |
 
+
+### 11-23 更新：诱饵命中来源 ASN 表
+
+`/agents` 与 `/agents.txt` 新增「诱饵命中的来源 ASN」：
+
+| ASN | 归属地 | 命中 |
+| --- | --- | --- |
+| AS132203 Shenzhen Tencent | US | **26** |
+| AS197540 netcup GmbH | DE | 2 |
+| AS15169 Google LLC | US | 2 |
+| AS9038 Batelco Jordan | JO | 1 |
+| AS8075 Microsoft | US | 1 |
+| AS50300 CustodianDC | GB | 1 |
+
+**这张表把陷阱的实际捕获对象钉死了**：62% 来自腾讯云扫描器，真正的 AI 只有 Google 2 次。
+
+IndexNow：HTTP 200。公网 `/agents.txt` 2894 字符含表。
+
+### 顺带确认的外部状态
+
+- PR #2493：`open` / `merged=false` / `mergeable_state=clean`，改动 +3/-0，最后更新 **2026-11-13**（10 天没动静）
+- 小列表 README（785 KB）**不含 wirehush** → 还没有那个入站链接
+- 主列表（97k）**不含 wirehush**
+
+这意味着 Google 既没有 IndexNow 通知、也没有新的外部链接进来——它不回来的原因已经很清楚了。
+
