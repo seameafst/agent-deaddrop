@@ -862,3 +862,25 @@ IndexNow：HTTP 200。公网 `/agents.txt` 2894 字符含表。
 数字全部来自数据库实时计算（`_headline_facts()`），不是硬编码。
 IndexNow：HTTP 200。
 
+
+### 11-23 视觉回归（本轮做的是"渲染对不对"，不是"字符串在不在"）
+
+之前三次改动只验证了 HTML **含有**这些区块，没验证**渲染是否正常**。
+本轮用本地渲染 + 视觉检查补上：
+
+| 检查项 | 结果 |
+| --- | --- |
+| 顶部三条要点 | 正常显示，长条自动换行并对齐，无重叠/溢出 |
+| Visitor families 表 | 列对齐，数字右对齐，✓ 标记正常 |
+| Last 24 hours 表 | 正常 |
+| Daily AI hits 表 | 日期/数值/百分比排列整齐 |
+| Where the trap hits come from 表 | ASN / Country / Hits 三列分布合理 |
+| 表格超宽 | 无，均适应屏幕宽度 |
+| CSS 泄漏成文本 | 无 |
+| 深色对比度 | 良好，辅助说明也可读 |
+
+页面总高 3023px（1200 宽视口）。
+
+**环境备注**：内置浏览器不可用（`electron` provider 报告 no spawnable Electron binary，
+需要 `npx install-electron` 或设 `ELECTRON_PATH`），所以改用「本地保存 HTML → 渲染截图 → 视觉检查」的路径。
+
