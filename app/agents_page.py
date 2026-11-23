@@ -37,6 +37,14 @@ CSS = """
   th, td { border-bottom: 1px solid #23272f; padding: .42rem .5rem; text-align: left; }
   th { color: #8b93a1; font-weight: 600; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* 日期/时间戳不要在连字符处折行："2026-" / "10-19" 两行很难读。 */
+  td.dt { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* 窄屏：整体缩一档，避免表格被挤得过密。 */
+  @media (max-width: 520px) {
+    table { font-size: .72rem; }
+    th, td { padding: .3rem .28rem; }
+    td.num { white-space: nowrap; }
+  }
   .yes { color: #4ade80; }
   .no { color: #f0a35e; }
   code { background: #161a20; padding: .1rem .35rem; border-radius: 4px; font-size: .84rem; }
@@ -285,7 +293,7 @@ def build_html(domain: str) -> str:
                                            "Perplexity", "Apple", "Amazon", "SERPstat", "Fossick")
         mark = '<span class="yes">✓ 已核验</span>' if is_known else '<span class="no">—</span>'
         body_rows.append(
-            f"<tr><td>{fam}</td><td>{_fmt(first)}</td><td>{_fmt(last)}</td>"
+            f"<tr><td>{fam}</td><td class=\"dt\">{_fmt(first)}</td><td class=\"dt\">{_fmt(last)}</td>"
             f'<td class="num">{hits}</td><td class="num">{ips}</td><td>{mark}</td></tr>'
         )
 
@@ -293,7 +301,7 @@ def build_html(domain: str) -> str:
     if recent:
         recent_rows = "".join(
             f"<tr><td>{fam}</td><td class=\"num\">{hits}</td>"
-            f"<td class=\"num\">{ips}</td><td>{(last or '')[:19]}</td></tr>"
+            f"<td class=\"num\">{ips}</td><td class=\"dt\">{(last or '')[:19]}</td></tr>"
             for fam, hits, ips, last in recent
         )
         recent_block = (
@@ -307,7 +315,7 @@ def build_html(domain: str) -> str:
     daily = _daily_ai(14)
     if daily:
         d_rows = "".join(
-            '<tr><td>%s</td><td class="num">%d</td><td class="num">%d</td>'
+            '<tr><td class="dt">%s</td><td class="num">%d</td><td class="num">%d</td>'
             '<td class="num">%.0f%%</td></tr>' % (day, ai, tot, 100.0 * ai / max(1, tot))
             for day, ai, tot in daily
         )
