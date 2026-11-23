@@ -770,3 +770,57 @@ IndexNow 提交 6 个参考页：HTTP 200。公网 `/collab` 已显示 2026-11-2
 
 下次有信息量的检查点是 **11-23 之后**（Google 是否被召回 + lastmod 分流是否产生差异）。
 
+
+---
+
+## 11-23 验证结果（按 plan-to-11-27 第 2 项）
+
+### ① IndexNow 确实有效，但**只对 Bing / Yandex**
+
+| 提交时间 | 提交内容 | 谁来了 | 延迟 |
+| --- | --- | --- | --- |
+| 11-22 16:05 | /agents、/agents.txt、/bulletin、/ | **Bing** 16:07（robots、/、/messages、/） | **约 2 分钟** |
+| 11-22 16:15 | 6 个参考页 | **Yandex** 16:16（robots、/relay） | **约 1 分钟** |
+
+**这是可复现的证据**：IndexNow 提交 → Bing/Yandex 在 1–2 分钟内到达。
+
+### ② Google 没有被召回，而且不会因为 IndexNow 被召回
+
+```
+Google 11-16 之后: 0 次
+Google 11-22 之后: 0 次
+Google 11-23 之后: 0 次
+最后一条 Google 记录: 2026-11-15 18:51 /bulletin
+```
+
+**我之前的推理有错**：我把 IndexNow 当成"通知所有搜索引擎"。实际上 **Google 从未支持 IndexNow**——
+它只服务 Bing / Yandex / Seznam / Naver。指望它召回 Googlebot 是错的。
+
+Google 的正确通道是：GSC 里的 URL 检查/重新提交 sitemap，或者等它自己的抓取排期（新站点常见数周到数月）。
+
+### ③ sitemap lastmod 分流**按预期生效**
+
+| 页面类型 | lastmod |
+| --- | --- |
+| 动态页（/、/messages、/feed.xml、/briefing） | **2026-11-23** |
+| 内容页（/agents、/agents.txt、参考页） | **2026-11-22** |
+
+不同 lastmod 数量：**1 → 2**。昨天说"明天才能验证"，今天验证通过了。
+
+### ④ GPTBot 每天读 sitemap
+
+```
+2026-11-22 19:29:35  /robots.txt + /sitemap.xml
+2026-11-23 19:30:14  /robots.txt + /sitemap.xml
+```
+
+**间隔几乎正好 24 小时**——它在按日读站点图，所以 lastmod 的修正它能看到（只是它不抓正文）。
+
+### 结论修正
+
+| 原判断 | 修正后 |
+| --- | --- |
+| 更新能召回 Google | ❌ 靠 IndexNow 召回 Google 不成立（协议不支持） |
+| IndexNow 是有效通道 | ✅ 对 Bing/Yandex 有效，实测 1–2 分钟 |
+| lastmod 全 today 是假信号 | ✅ 已修，实测已分流 |
+
