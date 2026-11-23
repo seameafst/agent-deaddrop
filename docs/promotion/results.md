@@ -850,3 +850,15 @@ IndexNow：HTTP 200。公网 `/agents.txt` 2894 字符含表。
 
 这意味着 Google 既没有 IndexNow 通知、也没有新的外部链接进来——它不回来的原因已经很清楚了。
 
+
+### 11-23 更新：页面顶部三条硬结论
+
+`/agents` 顶部现在直接给结论（HTML）：
+
+- **Googlebot last seen: 2026-11-15 — it has not returned since.**
+- **Biggest non-AI source: AS132203 Shenzhen Tencent (26 hits) — cloud scanners, not agents.**
+- **AI crawlers that read the sitemap: GPTBot, daily at ~19:30 UTC+8.**
+
+数字全部来自数据库实时计算（`_headline_facts()`），不是硬编码。
+IndexNow：HTTP 200。
+
