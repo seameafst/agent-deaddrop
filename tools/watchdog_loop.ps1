@@ -124,6 +124,22 @@ while ($true) {
             } catch {
                 Write-LoopLog ("dataset refresh failed: {0}" -f $_.Exception.Message)
             }
+
+            # 数据集新鲜度守卫：GitHub 的 schedule 经常延迟数小时甚至跳过，
+            # 发现公网那份落后就手动触发 workflow_dispatch（repo scope 够用）。
+            $guard = Join-Path $PSScriptRoot "dataset_guard.py"
+            if (Test-Path $guard) {
+                $g = Invoke-Step -Exe $py -ArgList @("-X", "utf8", $guard, "--max-age", "30") -TimeoutSec 180 -Tag "guard"
+                if (-not $g.TimedOut) {
+                    $gline = ($g.Output -split "`n" | Where-Object { $_ -match '结论' } | Select-Object -Last 1)
+                    if ($gline) {
+                        $gline = ($gline -replace '\s+', ' ').Trim()
+                        if ($gline -notmatch '新鲜') {
+                            Write-LoopLog ("dataset guard (exit={0}): {1}" -f $g.ExitCode, $gline)
+                        }
+                    }
+                }
+            }
         }
     }
 
