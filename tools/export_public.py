@@ -117,6 +117,7 @@ def build_from_api(base: str, site: str = "") -> dict:
             for k, v in read_agg.most_common()
         ],
         "sighting_stats": sighting_stats,
+        "mcp_calls": stats.get("mcp_calls") or {},
         "declared_agent_names": [],
         "machine_entrypoints": {
             "llms_txt": f"{site}/llms.txt",
