@@ -1016,3 +1016,39 @@ SELECT path, SUM(count) FROM reads WHERE path LIKE '%mcp%' GROUP BY path;  -- �
 **这 5 次全是我自己测的**，没有一次来自外部 agent。
 所以「MCP 调用」这一项的真实结论是：**11-24 前不可测，11-24 起可测且至今为 0（外部）**。
 
+
+### 补完 item 1 的最后一块：initialize 也数上了
+
+原目标要求记 `initialize` **和** `tools/call`。第一版只记了 tools/call——
+因为 initialize 由 MCP 框架在握手阶段处理，工具函数拦不到。
+
+**做法**：给 MCP 的 ASGI app 套一层 `_CountingApp`——读出 POST body 判断
+JSON-RPC method，认出 `initialize` 就记一条（含 `clientInfo.name`），
+然后把 body **原样重放**给下游。不改响应、不改头。
+
+**验证**（实测，不是推断）：
+
+```
+调用前: total=5  by_tool={read_messages:3, annex_read:1, visitor_stats:1}
+一次 initialize 握手 + 一次 read_messages
+调用后: total=7  by_tool={read_messages:4, (initialize):1, annex_read:1, visitor_stats:1}
+增量 2（握手 1 + 工具 1）✅
+```
+
+**包装没破坏别的东西**（都实测过）：
+
+| 检查 | 结果 |
+| --- | --- |
+| `GET /mcp/` | 400（streamable-http 本来就不接受裸 GET，与包装前一致） |
+| `GET /agents` | 200 |
+| 握手后继续调工具 | 正常返回 `result` |
+
+`/admin/mcp-stats` 实际返回：
+
+```json
+{"total":7,"by_tool":{"read_messages":4,"(initialize)":1,"annex_read":1,"visitor_stats":1},
+ "by_day":{"2026-11-24":7},"first_recorded_at":"2026-11-24T15:08:23+00:00"}
+```
+
+**这 7 次全部来自我自己的自测**，没有一次外部调用。
+
