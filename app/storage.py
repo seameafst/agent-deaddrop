@@ -113,6 +113,17 @@ CREATE TABLE IF NOT EXISTS sightings (
     asn TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_sightings_at ON sightings(at);
+CREATE TABLE IF NOT EXISTS mcp_calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at TEXT NOT NULL,
+    day TEXT NOT NULL DEFAULT '',
+    method TEXT NOT NULL DEFAULT '',
+    tool TEXT NOT NULL DEFAULT '',
+    ok INTEGER NOT NULL DEFAULT 1,
+    client TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_calls_at ON mcp_calls(at);
+CREATE INDEX IF NOT EXISTS idx_mcp_calls_tool ON mcp_calls(tool);
 """
 
 
