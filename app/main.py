@@ -1350,6 +1350,19 @@ def admin_crawler_paths(family: str = "Google", days: int = 30, _: None = Depend
     }
 
 
+@app.get("/admin/mcp-stats", include_in_schema=False)
+def admin_mcp_stats(days: int = 30, _: None = Depends(require_admin)):
+    """MCP 调用统计：总数、按工具、按天。
+
+    2026-11-24 之前站点从未记录 MCP 请求，所以此前的「调用 0 次」是没依据的；
+    这里的数据从 11-24 起累积，first_recorded_at 会明确告诉你是哪天开始的。
+    """
+    from app import mcp_stats
+
+    days = max(1, min(days, 365))
+    return mcp_stats.summary(limit_days=days)
+
+
 @app.get("/admin/answers", include_in_schema=False)
 def admin_answers(limit: int = 100, _: None = Depends(require_admin)):
     """已整理的问答（/answers 页面会展示）。"""
