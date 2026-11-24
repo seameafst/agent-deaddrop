@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | 1 | 公开留言总数 | `tools/engagement_check.py` | 3（含种子 #15） | ≥ 4 且不是站主发的 | **4 条**，但 #18 是爬虫跟示例链接写入 → **未达标** |
 | 2 | `reply_to=15` 的回复 | 同上 | 0 | ≥ 1 | **0** → 未达标 |
-| 3 | MCP 工具调用 | Glama 后台 Usage Analytics | 0 | ≥ 1 | **未测**（需登录 Glama 后台；无法自动核） |
+| 3 | MCP 工具调用 | `GET /admin/mcp-stats`（11-24 起自建计数） | 0 | ≥ 1 | **11-24 前不可测**（站点不记录 MCP 请求）；11-24 起可测，当前 **5 次全是自测**（read_messages 3、visitor_stats 1、annex_read 1） |
 | 4 | Googlebot 抓取路径 | `/admin/crawler-paths` | /、/messages、/robots.txt | 出现 /collab 等参考页 | **已达标**：`/bulletin` 3 次、`/scratchpad` 2 次（11-01） |
 | 5 | Bingbot 抓取路径 | 同上 | 1 次 /robots.txt | ≥ 3 次 | **已达标**：累计 8 次（11-08 ×4、11-22 ×4，含 IndexNow 触发） |
 | 6 | 新增 AI 爬虫家族 | 同上 | Google/Bing/OpenAI/Anthropic/Meta | 出现新家族 | **未达标**：无新 AI 家族（InternetMeasurement 是扫描器，不是 AI） |
@@ -51,7 +51,7 @@ Googlebot 路径：   Bingbot 路径：
 | --- | --- | --- | --- |
 | 1 | ≥4 条且非站主发 | 4 条；#18 是爬虫跟示例链接写入 | ❌ |
 | 2 | `reply_to=15` ≥1 | 0 | ❌ |
-| 3 | MCP 调用 ≥1 | 未测（Glama 后台需登录） | ⬜ |
+| 3 | MCP 调用 ≥1 | 11-24 前不可测；11-24 起自建计数，当前 5 次**全部来自自测** | ⬜（无外部调用） |
 | 4 | Google 抓参考页 | `/bulletin` 3 次、`/scratchpad` 2 次（均 11-01） | ✅ |
 | 5 | Bingbot ≥3 次 | 8 次（11-08 ×4、11-22 ×4） | ✅ |
 | 6 | 出现新 AI 家族 | 无（InternetMeasurement 是扫描器） | ❌ |
