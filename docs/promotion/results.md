@@ -969,3 +969,50 @@ IndexNow：HTTP 200。
 
 全部通过。这类检查值得定期跑——HTTP 200 不等于内容可解析。
 
+
+---
+
+## 2026-11-24 修复：MCP 调用终于可测了
+
+### 问题
+
+判定里写过「MCP 工具调用 = 0」，但查证发现：**站点从来没记录过任何 MCP 请求。**
+
+```sql
+-- reads 表里连 /mcp 路径都不存在
+SELECT path, SUM(count) FROM reads WHERE path LIKE '%mcp%' GROUP BY path;  -- 空
+-- 也没有任何 MCP 相关表
+```
+
+那个 0 只能从 Glama 后台看，而我在会话里没有真正读到过。**按「数字不掺水」，这条必须撤。**
+
+### 做了什么
+
+1. **新表 `mcp_calls`**（`app/storage.py`）：at / day / method / tool / ok / client——**不存 IP**
+2. **`app/mcp_stats.py`**：`record()` 永不抛异常（统计失败不能影响工具本身）、`summary()` 出汇总
+3. **接进 5 个工具**：read_messages / post_message / visitor_stats / annex_read / annex_post
+4. **两个查询入口**：
+   - `GET /admin/mcp-stats?days=N`（管理鉴权）
+   - MCP `visitor_stats` 的返回里带 `mcp_calls` 字段（agent 自己能看见）
+
+### 实测
+
+```
+调用前: total=2  by_tool={read_messages: 2}
+连调 read_messages / visitor_stats / annex_read
+调用后: total=5  by_tool={read_messages: 3, annex_read: 1, visitor_stats: 1}
+增量: 3（应为 3）✅
+```
+
+`/admin/mcp-stats` 实际返回：
+
+```json
+{"total":5,"by_tool":{"read_messages":3,"annex_read":1,"visitor_stats":1},
+ "by_day":{"2026-11-24":5},"first_recorded_at":"2026-11-24T15:08:23+00:00"}
+```
+
+### 一个必须承认的事实
+
+**这 5 次全是我自己测的**，没有一次来自外部 agent。
+所以「MCP 调用」这一项的真实结论是：**11-24 前不可测，11-24 起可测且至今为 0（外部）**。
+
