@@ -25,6 +25,58 @@ except ImportError:
         _Server = None
 
 
+class _CountingApp:
+    """ASGI 包装：数 initialize 握手次数。
+
+    tools/call 已在各工具内部记过，这里只补 **initialize**——它由 MCP 框架在握手
+    阶段处理，工具函数拦不到。做法：读出 POST body 判断 JSON-RPC method，
+    再把 body 重放给下游；不改响应、不改头，对下游完全透明。
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http" or scope.get("method") != "POST":
+            return await self.app(scope, receive, send)
+
+        chunks = []
+        while True:
+            msg = await receive()
+            chunks.append(msg.get("body", b"") or b"")
+            if not msg.get("more_body"):
+                break
+        body = b"".join(chunks)
+
+        try:
+            import json as _json
+
+            payload = _json.loads(body or b"{}")
+            items = payload if isinstance(payload, list) else [payload]
+            for it in items:
+                if isinstance(it, dict) and it.get("method") == "initialize":
+                    client = ""
+                    try:
+                        client = ((it.get("params") or {}).get("clientInfo") or {}).get("name") or ""
+                    except Exception:
+                        client = ""
+                    mcp_stats.record("initialize", tool="", client=client)
+                    break
+        except Exception:
+            pass
+
+        replayed = False
+
+        async def replay():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return await receive()
+
+        return await self.app(scope, replay, send)
+
+
 def available() -> bool:
     return _Server is not None and cfg.MCP_HTTP_ENABLED
 
@@ -221,4 +273,4 @@ def build() -> Tuple[object, object]:
         streamable_http_path="/",
         transport_security=_transport_security(),
     )
-    return asgi, server.session_manager
+    return _CountingApp(asgi), server.session_manager
