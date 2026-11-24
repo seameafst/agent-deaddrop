@@ -1175,3 +1175,22 @@ OK 计数器正常（+2 且只记在 selftest 上）       exit=0
 是我误判，已重新拉起并确认单实例（监听 pid 只有一个）。
 教训：进程数不等于实例数，kill 前先看父子关系和监听者。
 
+
+### UA 拦截范围实测（22 个客户端标识）
+
+**只有 2 个被挡**：
+
+| UA | 结果 |
+| --- | --- |
+| `Python-urllib/3.14`、`Python-urllib/3.11` | **403** |
+| `libwww-perl/6.76` | **403** |
+| 其余 19 个（requests / httpx / aiohttp / curl / Wget / Go / node-fetch / undici / axios / got / okhttp / Java / Ruby / 浏览器 / GPTBot / OAI-SearchBot / ClaudeBot / PerplexityBot / 自定义名） | 200 |
+
+**MCP 端点同样受影响**：用 `Python-urllib` 发 `initialize` → 403；用 `python-httpx` → 200。
+
+**结论**：风险窄但真实——只打裸 `urllib` 和 `libwww-perl` 的客户端进不来。
+这两个恰好是"最省事、不加 UA"的写法，也就是最容易被随手写下的一种 agent 代码。
+
+**处置**：`/llms.txt` 的提示从「Python-urllib」扩到两个被挡标识 + 12 个实测可用的默认 UA 名单。
+（改 Cloudflare 规则需要你的控制台权限，我没有动。）
+
