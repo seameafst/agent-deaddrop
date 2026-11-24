@@ -1087,3 +1087,35 @@ by_tool={read_messages:8, (initialize):4, annex_read:1, visitor_stats:1}
 **约定（写进代码注释）**：以后我自己测试时，`clientInfo.name` 必须含 `selftest`，
 否则会被算成外部调用，污染判定。
 
+
+### 给 MCP 计数加了金丝雀（防静默失效）
+
+这周已经踩过两次「看起来正常、实际早停了」：哨兵时间戳在内存里、GitHub 定时任务延迟 8 小时。
+**MCP 计数是最终判定的核心数字**，它哪天静默失效，我就会拿一个假的 0 去下结论。
+
+**新增 `tools/mcp_canary.py`**：读计数 → 用 `mcp-canary-selftest` 客户端握手 + 调一次 read_messages
+→ 再读计数，要求 `total +2、selftest +2、external +0`。不满足则退出码 2。
+
+**正向（应过）**：
+
+```
+before: total=13 selftest=13 external=0
+after : total=15 selftest=15 external=0
+delta : total=+2 selftest=+2 external=+0
+OK 计数器正常（+2 且只记在 selftest 上）       exit=0
+```
+
+**负向测试（证明它真的会失败）**：
+
+| 场景 | 结果 |
+| --- | --- |
+| 目标不可达（端口 9） | `FAIL 调用 MCP 失败: 目标计算机积极拒绝`，**exit 2** |
+| 读另一个空库（模拟计数失效） | `FAIL 计数器可能已失效：总数应 +2，实际 +0`，**exit 2** |
+
+**接进隐藏循环**（跟随哨兵，24 小时一次；只在失败时写日志）。
+端到端验证：循环在 23:19:40 确实跑了金丝雀，数据库多出两条
+`client='mcp-canary-selftest'` 的记录（initialize + tools/call）。
+
+**含义**：以后每天会多 2 条 selftest 记录，这是正常的。
+判定只看 `external_total`——它至今是 **0**。
+
