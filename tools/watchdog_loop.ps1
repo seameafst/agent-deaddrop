@@ -159,6 +159,16 @@ while ($true) {
             } catch {
                 Write-LoopLog ("promotion watch failed: {0}" -f $_.Exception.Message)
             }
+
+            # 金丝雀：验证 MCP 计数器没静默失效。判定要用这个数字，它坏了必须有人知道。
+            $canary = Join-Path $PSScriptRoot "mcp_canary.py"
+            if (Test-Path $canary) {
+                $c = Invoke-Step -Exe $py -ArgList @("-X", "utf8", $canary) -TimeoutSec 120 -Tag "canary"
+                if (-not $c.TimedOut -and $c.ExitCode -ne 0) {
+                    $cline = (($c.Output -split "`n") | Where-Object { $_ -match 'FAIL' } | Select-Object -First 1)
+                    Write-LoopLog ("mcp canary FAILED (exit={0}): {1}" -f $c.ExitCode, (($cline -replace '\s+', ' ').Trim()))
+                }
+            }
         }
     }
 
