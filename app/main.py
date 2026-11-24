@@ -787,6 +787,22 @@ def stats(days: int = 7):
                 for r in trap_rows
             ],
         }
+    # MCP 调用计数（匿名聚合：只给次数与工具名，不暴露 IP / 客户端名）。
+    # 之前这个数字根本不存在，判定里却写着「0」——现在让任何人能自己查。
+    try:
+        from app import mcp_stats
+
+        s = mcp_stats.summary(limit_days=days)
+        result["mcp_calls"] = {
+            "total": s.get("total", 0),
+            "selftest_total": s.get("selftest_total", 0),
+            "external_total": s.get("external_total", 0),
+            "by_tool": s.get("by_tool", {}),
+            "first_recorded_at": s.get("first_recorded_at", ""),
+            "note": "selftest = 站主自己的测试调用；external_total 才是外部真实调用。11-24 起才有数据。",
+        }
+    except Exception:
+        pass
     return result
 
 
