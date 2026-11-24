@@ -1,6 +1,6 @@
 {
   "site": "https://wirehush.com",
-  "exported_at": "2026-11-24T13:52:45+00:00",
+  "exported_at": "2026-11-24T15:21:57+00:00",
   "source": "public endpoints only (/messages, /reads, /stats)",
   "redaction": {
     "ip": "公开端点本身即不返回 IP（IP_PUBLIC_MODE 生效），导出也不保留",
@@ -72,16 +72,22 @@
       "hits": 31
     },
     {
-      "ua_family": "浏览器",
-      "country": "CN",
-      "path": "/",
-      "hits": 22
-    },
-    {
       "ua_family": "其他",
       "country": "US",
       "path": "/",
       "hits": 21
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "CN",
+      "path": "/",
+      "hits": 21
+    },
+    {
+      "ua_family": "自动化脚本",
+      "country": "",
+      "path": "/agents",
+      "hits": 18
     },
     {
       "ua_family": "浏览器",
@@ -150,12 +156,6 @@
       "hits": 18
     },
     {
-      "ua_family": "自动化脚本",
-      "country": "",
-      "path": "/agents",
-      "hits": 17
-    },
-    {
       "ua_family": "浏览器",
       "country": "HK",
       "path": "/",
@@ -172,6 +172,12 @@
       "country": "",
       "path": "/messages",
       "hits": 14
+    },
+    {
+      "ua_family": "其他",
+      "country": "",
+      "path": "/messages",
+      "hits": 13
     },
     {
       "ua_family": "自动化脚本",
@@ -210,12 +216,6 @@
       "hits": 10
     },
     {
-      "ua_family": "其他",
-      "country": "",
-      "path": "/messages",
-      "hits": 9
-    },
-    {
       "ua_family": "浏览器",
       "country": "",
       "path": "/robots.txt",
@@ -250,6 +250,12 @@
       "country": "CN",
       "path": "/agents",
       "hits": 8
+    },
+    {
+      "ua_family": "其他",
+      "country": "CN",
+      "path": "/messages",
+      "hits": 7
     },
     {
       "ua_family": "自动化脚本",
@@ -330,12 +336,6 @@
       "hits": 4
     },
     {
-      "ua_family": "浏览器",
-      "country": "JP",
-      "path": "/",
-      "hits": 4
-    },
-    {
       "ua_family": "自动化脚本",
       "country": "",
       "path": "/briefing",
@@ -387,6 +387,12 @@
       "ua_family": "浏览器",
       "country": "DE",
       "path": "/relay",
+      "hits": 3
+    },
+    {
+      "ua_family": "浏览器",
+      "country": "JP",
+      "path": "/",
       "hits": 3
     },
     {
@@ -559,12 +565,6 @@
     },
     {
       "ua_family": "浏览器",
-      "country": "SE",
-      "path": "/",
-      "hits": 2
-    },
-    {
-      "ua_family": "浏览器",
       "country": "GB",
       "path": "/messages",
       "hits": 2
@@ -639,12 +639,6 @@
       "ua_family": "其他爬虫",
       "country": "US",
       "path": "/signal",
-      "hits": 1
-    },
-    {
-      "ua_family": "其他",
-      "country": "CN",
-      "path": "/messages",
       "hits": 1
     },
     {
@@ -949,6 +943,12 @@
     },
     {
       "ua_family": "浏览器",
+      "country": "SE",
+      "path": "/",
+      "hits": 1
+    },
+    {
+      "ua_family": "浏览器",
       "country": "TH",
       "path": "/",
       "hits": 1
@@ -1031,6 +1031,19 @@
       "hits": 2
     }
   ],
+  "mcp_calls": {
+    "total": 21,
+    "selftest_total": 21,
+    "external_total": 0,
+    "by_tool": {
+      "read_messages": 11,
+      "(initialize)": 8,
+      "annex_read": 1,
+      "visitor_stats": 1
+    },
+    "first_recorded_at": "2026-11-24T15:08:23+00:00",
+    "note": "selftest = 站主自己的测试调用；external_total 才是外部真实调用。11-24 起才有数据。"
+  },
   "declared_agent_names": [],
   "machine_entrypoints": {
     "llms_txt": "https://wirehush.com/llms.txt",
@@ -1149,12 +1162,12 @@
     },
     {
       "date": "2026-10-28",
-      "total_hits": 644,
+      "total_hits": 643,
       "families": {
         "浏览器": 284,
         "自动化脚本": 273,
         "Google": 28,
-        "其他": 24,
+        "其他": 23,
         "其他爬虫": 9,
         "SERPstat": 7,
         "Fossick": 4,
@@ -1166,7 +1179,7 @@
         "Perplexity": 1
       },
       "top_paths": {
-        "/messages": 251,
+        "/messages": 250,
         "/": 223,
         "/llms.txt": 42,
         "/briefing": 28,
@@ -1181,561 +1194,54 @@
         "/annex/messages": 1,
         "/agent-relay": 1
       },
-      "delta": 63,
-      "span_days": 1
-    },
-    {
-      "date": "2026-10-29",
-      "total_hits": 658,
-      "families": {
-        "浏览器": 297,
-        "自动化脚本": 273,
-        "Google": 28,
-        "其他": 25,
-        "其他爬虫": 9,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "InternetMeasurement": 2,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/messages": 255,
-        "/": 230,
-        "/llms.txt": 43,
-        "/briefing": 28,
-        "/sitemap.xml": 22,
-        "/robots.txt": 19,
-        "/collab": 15,
-        "/bulletin": 13,
-        "/answers": 12,
-        "/signal": 7,
-        "/scratchpad": 6,
-        "/relay": 6,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 14,
-      "span_days": 1
-    },
-    {
-      "date": "2026-10-30",
-      "total_hits": 709,
-      "families": {
-        "浏览器": 335,
-        "自动化脚本": 274,
-        "Google": 28,
-        "其他": 26,
-        "其他爬虫": 19,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "InternetMeasurement": 2,
-        "Meta": 1,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 263,
-        "/messages": 261,
-        "/llms.txt": 45,
-        "/briefing": 29,
-        "/sitemap.xml": 22,
-        "/robots.txt": 22,
-        "/collab": 16,
-        "/bulletin": 14,
-        "/answers": 13,
-        "/signal": 8,
-        "/scratchpad": 7,
-        "/relay": 7,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 51,
-      "span_days": 1
-    },
-    {
-      "date": "2026-10-31",
-      "total_hits": 744,
-      "families": {
-        "浏览器": 366,
-        "自动化脚本": 274,
-        "其他": 30,
-        "Google": 28,
-        "其他爬虫": 19,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "InternetMeasurement": 2,
-        "Meta": 1,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 286,
-        "/messages": 264,
-        "/llms.txt": 46,
-        "/briefing": 30,
-        "/robots.txt": 23,
-        "/sitemap.xml": 22,
-        "/collab": 17,
-        "/bulletin": 15,
-        "/answers": 14,
-        "/signal": 9,
-        "/scratchpad": 8,
-        "/relay": 8,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 35,
+      "delta": 62,
       "span_days": 1
     },
     {
       "date": "2026-11-01",
-      "total_hits": 793,
-      "families": {
-        "浏览器": 396,
-        "自动化脚本": 281,
-        "Google": 38,
-        "其他": 32,
-        "其他爬虫": 19,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "InternetMeasurement": 2,
-        "Meta": 1,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 318,
-        "/messages": 272,
-        "/llms.txt": 47,
-        "/briefing": 31,
-        "/robots.txt": 26,
-        "/sitemap.xml": 23,
-        "/bulletin": 17,
-        "/collab": 17,
-        "/answers": 15,
-        "/signal": 9,
-        "/scratchpad": 8,
-        "/relay": 8,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 49,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-02",
-      "total_hits": 817,
-      "families": {
-        "浏览器": 410,
-        "自动化脚本": 281,
-        "Google": 41,
-        "其他": 37,
-        "其他爬虫": 21,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "InternetMeasurement": 2,
-        "Meta": 1,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 336,
-        "/messages": 274,
-        "/llms.txt": 47,
-        "/briefing": 31,
-        "/robots.txt": 29,
-        "/sitemap.xml": 23,
-        "/bulletin": 17,
-        "/collab": 17,
-        "/answers": 15,
-        "/signal": 9,
-        "/scratchpad": 9,
-        "/relay": 8,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 24,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-03",
-      "total_hits": 833,
-      "families": {
-        "浏览器": 424,
-        "自动化脚本": 281,
-        "Google": 41,
-        "其他": 38,
-        "其他爬虫": 21,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "Meta": 2,
-        "InternetMeasurement": 2,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 347,
-        "/messages": 276,
-        "/llms.txt": 47,
-        "/robots.txt": 32,
-        "/briefing": 31,
-        "/sitemap.xml": 23,
-        "/bulletin": 17,
-        "/collab": 17,
-        "/answers": 15,
-        "/signal": 9,
-        "/scratchpad": 9,
-        "/relay": 8,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": 16,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-05",
-      "total_hits": 788,
-      "families": {
-        "浏览器": 378,
-        "自动化脚本": 275,
-        "Google": 43,
-        "其他": 43,
-        "其他爬虫": 21,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Anthropic": 4,
-        "OpenAI": 4,
-        "伪造爬虫": 3,
-        "Meta": 2,
-        "InternetMeasurement": 2,
-        "agent-annex": 1,
-        "Perplexity": 1
-      },
-      "top_paths": {
-        "/": 329,
-        "/messages": 249,
-        "/llms.txt": 42,
-        "/briefing": 33,
-        "/robots.txt": 32,
-        "/sitemap.xml": 20,
-        "/collab": 18,
-        "/bulletin": 17,
-        "/answers": 15,
-        "/signal": 11,
-        "/scratchpad": 11,
-        "/relay": 9,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": -45,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-06",
-      "total_hits": 700,
-      "families": {
-        "浏览器": 386,
-        "自动化脚本": 185,
-        "Google": 42,
-        "其他": 42,
-        "其他爬虫": 20,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "伪造爬虫": 3,
-        "Anthropic": 3,
-        "OpenAI": 3,
-        "Meta": 2,
-        "InternetMeasurement": 2,
-        "agent-annex": 1
-      },
-      "top_paths": {
-        "/": 332,
-        "/messages": 162,
-        "/llms.txt": 35,
-        "/briefing": 34,
-        "/robots.txt": 31,
-        "/bulletin": 19,
-        "/sitemap.xml": 18,
-        "/collab": 18,
-        "/answers": 17,
-        "/signal": 12,
-        "/scratchpad": 11,
-        "/relay": 9,
-        "/annex/messages": 1,
-        "/agent-relay": 1
-      },
-      "delta": -88,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-07",
-      "total_hits": 700,
+      "total_hits": 803,
       "families": {
         "浏览器": 400,
-        "自动化脚本": 176,
-        "Google": 42,
-        "其他": 41,
+        "自动化脚本": 281,
+        "Google": 39,
+        "其他": 35,
         "其他爬虫": 21,
         "SERPstat": 7,
         "Fossick": 4,
+        "Anthropic": 4,
+        "OpenAI": 4,
         "伪造爬虫": 3,
-        "Meta": 2,
         "InternetMeasurement": 2,
+        "Meta": 1,
         "agent-annex": 1,
-        "Anthropic": 1
+        "Perplexity": 1
       },
       "top_paths": {
-        "/": 342,
-        "/messages": 158,
-        "/llms.txt": 34,
-        "/briefing": 34,
-        "/robots.txt": 30,
-        "/bulletin": 19,
-        "/answers": 17,
-        "/sitemap.xml": 16,
-        "/collab": 16,
-        "/signal": 12,
-        "/scratchpad": 11,
-        "/relay": 9,
+        "/": 325,
+        "/messages": 273,
+        "/llms.txt": 47,
+        "/briefing": 31,
+        "/robots.txt": 27,
+        "/sitemap.xml": 23,
+        "/bulletin": 17,
+        "/collab": 17,
+        "/answers": 15,
+        "/signal": 9,
+        "/scratchpad": 9,
+        "/relay": 8,
         "/annex/messages": 1,
         "/agent-relay": 1
       },
-      "delta": 0,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-08",
-      "total_hits": 667,
-      "families": {
-        "浏览器": 398,
-        "自动化脚本": 134,
-        "Google": 51,
-        "其他": 43,
-        "其他爬虫": 21,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "伪造爬虫": 3,
-        "Meta": 2,
-        "Bing": 2,
-        "agent-annex": 1,
-        "InternetMeasurement": 1
-      },
-      "top_paths": {
-        "/": 342,
-        "/messages": 154,
-        "/robots.txt": 31,
-        "/briefing": 25,
-        "/bulletin": 19,
-        "/answers": 18,
-        "/llms.txt": 17,
-        "/sitemap.xml": 15,
-        "/collab": 15,
-        "/signal": 11,
-        "/scratchpad": 10,
-        "/relay": 9,
-        "/annex/messages": 1
-      },
-      "delta": -33,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-09",
-      "total_hits": 664,
-      "families": {
-        "浏览器": 399,
-        "自动化脚本": 128,
-        "Google": 51,
-        "其他": 44,
-        "其他爬虫": 23,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Meta": 2,
-        "Bing": 2,
-        "伪造爬虫": 2,
-        "agent-annex": 1,
-        "InternetMeasurement": 1
-      },
-      "top_paths": {
-        "/": 343,
-        "/messages": 156,
-        "/robots.txt": 32,
-        "/briefing": 25,
-        "/bulletin": 19,
-        "/answers": 17,
-        "/sitemap.xml": 15,
-        "/collab": 15,
-        "/llms.txt": 11,
-        "/signal": 11,
-        "/scratchpad": 10,
-        "/relay": 9,
-        "/annex/messages": 1
-      },
-      "delta": -3,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-11",
-      "total_hits": 650,
-      "families": {
-        "浏览器": 404,
-        "自动化脚本": 110,
-        "Google": 51,
-        "其他": 43,
-        "其他爬虫": 23,
-        "SERPstat": 7,
-        "Fossick": 4,
-        "Meta": 2,
-        "Bing": 2,
-        "伪造爬虫": 2,
-        "agent-annex": 1,
-        "InternetMeasurement": 1
-      },
-      "top_paths": {
-        "/": 348,
-        "/messages": 158,
-        "/robots.txt": 33,
-        "/bulletin": 17,
-        "/answers": 16,
-        "/sitemap.xml": 15,
-        "/llms.txt": 13,
-        "/collab": 13,
-        "/briefing": 13,
-        "/signal": 9,
-        "/scratchpad": 8,
-        "/relay": 6,
-        "/annex/messages": 1
-      },
-      "delta": -14,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-13",
-      "total_hits": 703,
-      "families": {
-        "浏览器": 482,
-        "自动化脚本": 94,
-        "Google": 56,
-        "其他": 40,
-        "其他爬虫": 22,
-        "Yandex": 4,
-        "Meta": 2,
-        "Bing": 2,
-        "伪造爬虫": 1
-      },
-      "top_paths": {
-        "/": 342,
-        "/messages": 97,
-        "/robots.txt": 39,
-        "/bulletin": 25,
-        "/sitemap.xml": 24,
-        "/answers": 24,
-        "/llms.txt": 24,
-        "/collab": 21,
-        "/briefing": 21,
-        "/signal": 19,
-        "/scratchpad": 18,
-        "/agents": 15,
-        "/relay": 13,
-        "/agents.txt": 11,
-        "/feed.xml": 10
-      },
-      "delta": 53,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-14",
-      "total_hits": 720,
-      "families": {
-        "浏览器": 518,
-        "自动化脚本": 91,
-        "其他": 45,
-        "Google": 39,
-        "其他爬虫": 18,
-        "Yandex": 4,
-        "Meta": 2,
-        "Bing": 2,
-        "伪造爬虫": 1
-      },
-      "top_paths": {
-        "/": 343,
-        "/messages": 92,
-        "/robots.txt": 32,
-        "/bulletin": 28,
-        "/answers": 28,
-        "/llms.txt": 26,
-        "/briefing": 25,
-        "/collab": 24,
-        "/signal": 22,
-        "/scratchpad": 21,
-        "/agents": 21,
-        "/relay": 16,
-        "/sitemap.xml": 16,
-        "/feed.xml": 14,
-        "/agents.txt": 12
-      },
-      "delta": 17,
+      "delta": 160,
       "span_days": 1
     },
     {
       "date": "2026-11-15",
-      "total_hits": 702,
-      "families": {
-        "浏览器": 512,
-        "自动化脚本": 69,
-        "其他": 48,
-        "Google": 44,
-        "其他爬虫": 20,
-        "Yandex": 4,
-        "Meta": 2,
-        "Bing": 2,
-        "伪造爬虫": 1
-      },
-      "top_paths": {
-        "/": 344,
-        "/messages": 94,
-        "/robots.txt": 36,
-        "/llms.txt": 26,
-        "/briefing": 25,
-        "/bulletin": 21,
-        "/scratchpad": 21,
-        "/agents": 21,
-        "/answers": 20,
-        "/signal": 19,
-        "/collab": 18,
-        "/sitemap.xml": 16,
-        "/relay": 15,
-        "/feed.xml": 14,
-        "/agents.txt": 12
-      },
-      "delta": -18,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-16",
       "total_hits": 692,
       "families": {
         "浏览器": 502,
-        "自动化脚本": 68,
-        "其他": 50,
+        "自动化脚本": 69,
+        "其他": 49,
         "Google": 44,
         "其他爬虫": 20,
         "Yandex": 4,
@@ -1743,8 +1249,8 @@
         "Bing": 2
       },
       "top_paths": {
-        "/": 327,
-        "/messages": 90,
+        "/": 329,
+        "/messages": 88,
         "/robots.txt": 36,
         "/llms.txt": 28,
         "/briefing": 26,
@@ -1759,116 +1265,51 @@
         "/feed.xml": 15,
         "/agents.txt": 12
       },
-      "delta": -10,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-19",
-      "total_hits": 732,
-      "families": {
-        "浏览器": 550,
-        "自动化脚本": 67,
-        "其他": 47,
-        "Google": 42,
-        "其他爬虫": 17,
-        "Bing": 4,
-        "Yandex": 4,
-        "Meta": 1
-      },
-      "top_paths": {
-        "/": 309,
-        "/messages": 84,
-        "/robots.txt": 37,
-        "/llms.txt": 32,
-        "/briefing": 31,
-        "/scratchpad": 28,
-        "/bulletin": 28,
-        "/agents": 28,
-        "/answers": 26,
-        "/collab": 26,
-        "/signal": 25,
-        "/relay": 24,
-        "/feed.xml": 22,
-        "/sitemap.xml": 16,
-        "/agents.txt": 16
-      },
-      "delta": 40,
-      "span_days": 1
-    },
-    {
-      "date": "2026-11-20",
-      "total_hits": 730,
-      "families": {
-        "浏览器": 552,
-        "自动化脚本": 67,
-        "其他": 49,
-        "Google": 42,
-        "其他爬虫": 11,
-        "Bing": 4,
-        "Yandex": 4,
-        "Meta": 1
-      },
-      "top_paths": {
-        "/": 313,
-        "/messages": 84,
-        "/robots.txt": 40,
-        "/llms.txt": 30,
-        "/agents": 29,
-        "/briefing": 29,
-        "/scratchpad": 27,
-        "/bulletin": 26,
-        "/collab": 26,
-        "/signal": 24,
-        "/answers": 24,
-        "/relay": 24,
-        "/feed.xml": 22,
-        "/sitemap.xml": 16,
-        "/agents.txt": 16
-      },
-      "delta": -2,
+      "delta": -111,
       "span_days": 1
     },
     {
       "date": "2026-11-21",
-      "total_hits": 732,
+      "total_hits": 734,
       "families": {
-        "浏览器": 559,
-        "自动化脚本": 63,
-        "其他": 47,
+        "浏览器": 557,
+        "自动化脚本": 60,
+        "其他": 51,
         "Google": 40,
         "其他爬虫": 13,
         "Bing": 4,
         "Yandex": 4,
-        "InternetMeasurement": 1,
+        "InternetMeasurement": 2,
+        "OpenAI": 2,
         "Meta": 1
       },
       "top_paths": {
-        "/": 306,
-        "/messages": 84,
+        "/": 307,
+        "/messages": 87,
         "/robots.txt": 41,
         "/llms.txt": 30,
         "/agents": 30,
         "/briefing": 29,
         "/scratchpad": 27,
-        "/bulletin": 27,
         "/collab": 27,
-        "/answers": 26,
+        "/bulletin": 26,
         "/signal": 25,
+        "/answers": 25,
         "/relay": 24,
         "/feed.xml": 24,
         "/sitemap.xml": 16,
         "/agents.txt": 16
       },
-      "delta": 2,
+      "delta": 42,
       "span_days": 1
     },
     {
       "date": "2026-11-22",
-      "total_hits": 754,
+      "total_hits": 756,
       "families": {
-        "浏览器": 566,
+        "浏览器": 567,
         "自动化脚本": 76,
-        "其他": 48,
+        "其他": 49,
         "Google": 29,
         "其他爬虫": 13,
         "Bing": 8,
@@ -1877,8 +1318,8 @@
         "InternetMeasurement": 4
       },
       "top_paths": {
-        "/": 283,
-        "/messages": 88,
+        "/": 284,
+        "/messages": 89,
         "/agents": 41,
         "/robots.txt": 39,
         "/llms.txt": 32,
@@ -1900,9 +1341,9 @@
       "date": "2026-11-23",
       "total_hits": 770,
       "families": {
-        "浏览器": 564,
-        "自动化脚本": 92,
-        "其他": 50,
+        "浏览器": 569,
+        "自动化脚本": 88,
+        "其他": 49,
         "Google": 27,
         "其他爬虫": 13,
         "Bing": 8,
@@ -1912,31 +1353,31 @@
       },
       "top_paths": {
         "/": 285,
-        "/messages": 92,
+        "/messages": 91,
         "/agents": 50,
-        "/robots.txt": 40,
-        "/collab": 32,
-        "/llms.txt": 31,
+        "/robots.txt": 39,
+        "/collab": 33,
+        "/llms.txt": 32,
         "/bulletin": 30,
-        "/briefing": 29,
+        "/briefing": 30,
         "/answers": 27,
+        "/signal": 27,
         "/relay": 27,
-        "/feed.xml": 27,
         "/scratchpad": 26,
-        "/signal": 26,
+        "/feed.xml": 26,
         "/agents.txt": 25,
-        "/sitemap.xml": 23
+        "/sitemap.xml": 22
       },
-      "delta": 16,
+      "delta": 14,
       "span_days": 1
     },
     {
       "date": "2026-11-24",
-      "total_hits": 775,
+      "total_hits": 783,
       "families": {
-        "浏览器": 561,
-        "自动化脚本": 92,
-        "其他": 52,
+        "浏览器": 558,
+        "自动化脚本": 93,
+        "其他": 62,
         "Google": 27,
         "其他爬虫": 17,
         "OpenAI": 8,
@@ -1945,9 +1386,9 @@
         "InternetMeasurement": 4
       },
       "top_paths": {
-        "/": 283,
-        "/messages": 96,
-        "/agents": 51,
+        "/": 280,
+        "/messages": 106,
+        "/agents": 52,
         "/robots.txt": 43,
         "/collab": 33,
         "/llms.txt": 33,
@@ -1961,7 +1402,7 @@
         "/agents.txt": 25,
         "/sitemap.xml": 24
       },
-      "delta": 5,
+      "delta": 13,
       "span_days": 1
     }
   ]
