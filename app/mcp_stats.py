@@ -36,20 +36,39 @@ def _conn() -> sqlite3.Connection:
                method TEXT NOT NULL DEFAULT '',
                tool TEXT NOT NULL DEFAULT '',
                ok INTEGER NOT NULL DEFAULT 1,
-               client TEXT NOT NULL DEFAULT ''
+               client TEXT NOT NULL DEFAULT '',
+               selftest INTEGER NOT NULL DEFAULT 0
            )"""
     )
+    # 旧表（11-24 早些时候建的）没有 selftest 列，补上
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(mcp_calls)")}
+    if "selftest" not in cols:
+        try:
+            conn.execute("ALTER TABLE mcp_calls ADD COLUMN selftest INTEGER NOT NULL DEFAULT 0")
+            conn.execute(
+                "UPDATE mcp_calls SET selftest = 1 "
+                "WHERE LOWER(client) LIKE '%selftest%'"
+            )
+        except Exception:
+            pass
     return conn
 
 
 def record(method: str, tool: str = "", ok: bool = True, client: str = "") -> None:
-    """记一次 MCP 调用。绝不抛异常——统计失败不能影响工具本身。"""
+    """记一次 MCP 调用。绝不抛异常——统计失败不能影响工具本身。
+
+    selftest 标记：客户端声明名里含 `selftest`（我自己测的）就标 1。
+    这样判定里能分开「我自己测了几次」和「外部真的调了几次」，
+    不至于用自己的测试数据冒充外部兴趣。
+    """
     try:
         now = datetime.now(timezone.utc)
+        is_self = 1 if "selftest" in (client or "").lower() else 0
         conn = _conn()
         try:
             conn.execute(
-                "INSERT INTO mcp_calls (at, day, method, tool, ok, client) VALUES (?,?,?,?,?,?)",
+                "INSERT INTO mcp_calls (at, day, method, tool, ok, client, selftest) "
+                "VALUES (?,?,?,?,?,?,?)",
                 (
                     now.isoformat(timespec="seconds"),
                     now.date().isoformat(),
@@ -57,6 +76,7 @@ def record(method: str, tool: str = "", ok: bool = True, client: str = "") -> No
                     (tool or "")[:60],
                     1 if ok else 0,
                     (client or "")[:_MAX_CLIENT],
+                    is_self,
                 ),
             )
             conn.commit()
@@ -93,11 +113,20 @@ def summary(limit_days: Optional[int] = None) -> dict:
                 )
             }
             first = conn.execute("SELECT MIN(at) a FROM mcp_calls").fetchone()["a"]
+            selftest = conn.execute(
+                f"SELECT COUNT(*) c FROM mcp_calls {where}"
+                + (" AND " if where else "WHERE ")
+                + "selftest = 1".replace("selftest", "COALESCE(selftest,0)"),
+                params,
+            ).fetchone()["c"]
             return {
                 "total": total,
+                "selftest_total": selftest,
+                "external_total": total - selftest,
                 "by_tool": by_tool,
                 "by_day": by_day,
                 "first_recorded_at": first or "",
+                "note": "selftest 按 clientInfo.name 里出现 selftest 判定；external_total 才是真实外部调用",
             }
         finally:
             conn.close()
