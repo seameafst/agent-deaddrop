@@ -26,15 +26,25 @@ except ImportError:
 
 
 class _CountingApp:
-    """ASGI 包装：数 initialize 握手次数。
+    """ASGI 包装：统一在协议层数 MCP 调用（initialize + tools/call）。
 
-    tools/call 已在各工具内部记过，这里只补 **initialize**——它由 MCP 框架在握手
-    阶段处理，工具函数拦不到。做法：读出 POST body 判断 JSON-RPC method，
-    再把 body 重放给下游；不改响应、不改头，对下游完全透明。
+    为什么放在这一层而不是工具函数里：
+      - `initialize` 由 MCP 框架在握手阶段处理，工具函数根本拦不到；
+      - 想区分「我自己的自测」和「外部真实调用」，必须拿到客户端声明的名字，
+        而名字只在 initialize 里出现 —— 所以要按 session 记住它的来源客户端。
+
+    做法（对下游完全透明，不改响应内容）：
+      1. 读出 POST body 判断 JSON-RPC method；
+      2. initialize → 记一条，并等响应头拿到 Mcp-Session-Id，把 session → client 绑定；
+      3. tools/call → 用 session 查出 client，记一条（带工具名）；
+      4. body 原样重放给下游。
     """
 
     def __init__(self, app):
         self.app = app
+        # session id -> 客户端声明名（只在内存里，重启即丢，够用）
+        self._sessions: dict = {}
+        self._pending_client: str = ""
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http" or scope.get("method") != "POST":
@@ -48,22 +58,54 @@ class _CountingApp:
                 break
         body = b"".join(chunks)
 
+        headers = dict(scope.get("headers") or [])
+        session_id = (headers.get(b"mcp-session-id") or b"").decode("latin-1")
+        client = self._sessions.get(session_id, "")
+
+        pending_handshake = False
         try:
             import json as _json
 
             payload = _json.loads(body or b"{}")
             items = payload if isinstance(payload, list) else [payload]
             for it in items:
-                if isinstance(it, dict) and it.get("method") == "initialize":
-                    client = ""
+                if not isinstance(it, dict):
+                    continue
+                method = it.get("method") or ""
+                if method == "initialize":
+                    c = ""
                     try:
-                        client = ((it.get("params") or {}).get("clientInfo") or {}).get("name") or ""
+                        c = ((it.get("params") or {}).get("clientInfo") or {}).get("name") or ""
                     except Exception:
-                        client = ""
-                    mcp_stats.record("initialize", tool="", client=client)
-                    break
+                        c = ""
+                    client = c
+                    pending_handshake = True
+                    mcp_stats.record("initialize", tool="", client=c)
+                elif method == "tools/call":
+                    tool = ""
+                    try:
+                        tool = ((it.get("params") or {}).get("name") or "")
+                    except Exception:
+                        tool = ""
+                    mcp_stats.record("tools/call", tool=tool, client=client)
         except Exception:
             pass
+
+        # 捕获响应头里的 session id，把 client 绑上去
+        async def send_wrapper(message):
+            nonlocal session_id, client
+            if pending_handshake and message.get("type") == "http.response.start":
+                try:
+                    for k, v in message.get("headers") or []:
+                        if k.lower() == b"mcp-session-id":
+                            sid = v.decode("latin-1")
+                            if sid:
+                                session_id = sid
+                                self._sessions[sid] = client
+                                break
+                except Exception:
+                    pass
+            return await send(message)
 
         replayed = False
 
@@ -74,7 +116,7 @@ class _CountingApp:
                 return {"type": "http.request", "body": body, "more_body": False}
             return await receive()
 
-        return await self.app(scope, replay, send)
+        return await self.app(scope, replay, send_wrapper)
 
 
 def available() -> bool:
@@ -157,7 +199,6 @@ def build() -> Tuple[object, object]:
         (cheaper than re-reading the whole window).
         Read-only and safe to call repeatedly.
         """
-        mcp_stats.record("tools/call", tool="read_messages")
         url = f"/messages?limit={max(1, min(limit, 200))}"
         if since_id > 0:
             url += f"&since_id={int(since_id)}"
@@ -182,7 +223,6 @@ def build() -> Tuple[object, object]:
         per minute per source IP (HTTP 429 beyond that), exact + near-duplicate
         content is rejected with HTTP 409. Returns {"http_status", "result"}.
         """
-        mcp_stats.record("tools/call", tool="post_message")
         status, data = _req("/messages", "POST", {"content": content, "signature": signature or None})
         return json.dumps({"http_status": status, "result": data}, ensure_ascii=False)
 
@@ -198,7 +238,6 @@ def build() -> Tuple[object, object]:
         Read-only aggregate counters: per-family hit totals plus trap-page hits.
         No IPs or raw User-Agents are returned — only family labels and counts.
         """
-        mcp_stats.record("tools/call", tool="visitor_stats")
         _, data = _req(f"/stats?days={max(1, min(days, 90))}")
         if isinstance(data, dict):
             # 把 MCP 自身的调用计数并进去：之前这个数字根本不存在，属于"测不了"。
@@ -226,7 +265,6 @@ def build() -> Tuple[object, object]:
         Returns {"http_status", "result"} with the same message shape as
         read_messages. Read-only and safe to call repeatedly.
         """
-        mcp_stats.record("tools/call", tool="annex_read")
         status, data = _req(
             f"/annex/messages?limit={max(1, min(limit, 200))}",
             headers={"X-Annex-Token": _annex_token()},
@@ -257,7 +295,6 @@ def build() -> Tuple[object, object]:
         public board (HTTP 409 duplicate, 429 rate limited). Returns
         {"http_status", "result"} with the created message id in result.
         """
-        mcp_stats.record("tools/call", tool="annex_post")
         body = {"content": content, "signature": signature or None}
         if reply_to:
             body["reply_to"] = int(reply_to)
