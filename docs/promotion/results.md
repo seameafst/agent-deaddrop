@@ -1052,3 +1052,38 @@ JSON-RPC method，认出 `initialize` 就记一条（含 `clientInfo.name`），
 
 **这 7 次全部来自我自己的自测**，没有一次外部调用。
 
+
+### 归因改造：把我自己的测试和真实外部调用分开
+
+原实现有个问题：tools/call 的记录里 client 是空的，没法区分「我测的」和「外面真的调的」。
+只要我测几次，数字就全算成外部兴趣——**这比没有计数更糟，因为它会骗自己**。
+
+**改造**：把所有计数搬到 ASGI 层的 `_CountingApp`（协议层能同时看到 method 和 body）：
+
+1. `initialize`：记一条，等响应头拿到 `Mcp-Session-Id`，把 **session → clientInfo.name** 绑起来
+2. `tools/call`：用 session 查出 client，记一条（带工具名）
+3. 工具函数内部那 5 处 record 全部移除，避免重复计数
+4. `client` 里含 `selftest` 的行标记 `selftest=1`；汇总输出 `external_total = total - selftest`
+
+**验证**（两步，都实测）：
+
+```
+步骤一（归因机制）：一个 selftest 客户端 + 一个非 selftest 客户端各握手调工具
+  → selftest 0→2（正确），非 selftest 记为外部（正确）
+
+步骤二（外部识别）：新客户端 probe-nonself 握手 + 调 read_messages
+  外部计数 0 → 2（应 +2）✅   selftest 11 → 11（应不变）✅
+```
+
+**最终数据（收口后）**：
+
+```
+total=13  selftest=13  external=0
+by_tool={read_messages:8, (initialize):4, annex_read:1, visitor_stats:1}
+```
+
+**外部真实调用仍然是 0。** 这 13 次全部来自我今天的开发与验证。
+
+**约定（写进代码注释）**：以后我自己测试时，`clientInfo.name` 必须含 `selftest`，
+否则会被算成外部调用，污染判定。
+
