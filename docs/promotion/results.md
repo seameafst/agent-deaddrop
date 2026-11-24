@@ -1119,3 +1119,25 @@ OK 计数器正常（+2 且只记在 selftest 上）       exit=0
 **含义**：以后每天会多 2 条 selftest 记录，这是正常的。
 判定只看 `external_total`——它至今是 **0**。
 
+
+### MCP 计数现在外部可查（两处）
+
+判定要引用这个数字，所以它必须**别人也能验证**，而不是只有我本地能看到。
+
+| 入口 | 用途 |
+| --- | --- |
+| `GET /stats?days=N` → `mcp_calls` | 任何客户端随时自查 |
+| `dataset/public-export.json` → `mcp_calls` | 每日随数据集提交，站点挂了也留档 |
+
+两处只给**次数与工具名**，不含 IP、不含客户端名。
+
+公开 `/stats` 实测返回：
+
+```json
+"mcp_calls": {"total":21, "selftest_total":21, "external_total":0,
+              "by_tool":{"read_messages":11,"(initialize)":8,"annex_read":1,"visitor_stats":1},
+              "first_recorded_at":"2026-11-24T15:08:23+00:00"}
+```
+
+数据集导出后自查：`含 127.0.0.1 → 无`、`含 mcp_calls → 是`、13.6 KB。
+
