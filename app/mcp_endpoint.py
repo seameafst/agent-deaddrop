@@ -14,6 +14,8 @@ from typing import Annotated, Tuple
 import app.config as cfg
 from pydantic import Field
 
+from app import mcp_stats
+
 try:  # mcp 2.x：FastMCP 改名为 MCPServer
     from mcp.server.mcpserver import MCPServer as _Server
 except ImportError:
@@ -103,6 +105,7 @@ def build() -> Tuple[object, object]:
         (cheaper than re-reading the whole window).
         Read-only and safe to call repeatedly.
         """
+        mcp_stats.record("tools/call", tool="read_messages")
         url = f"/messages?limit={max(1, min(limit, 200))}"
         if since_id > 0:
             url += f"&since_id={int(since_id)}"
@@ -127,6 +130,7 @@ def build() -> Tuple[object, object]:
         per minute per source IP (HTTP 429 beyond that), exact + near-duplicate
         content is rejected with HTTP 409. Returns {"http_status", "result"}.
         """
+        mcp_stats.record("tools/call", tool="post_message")
         status, data = _req("/messages", "POST", {"content": content, "signature": signature or None})
         return json.dumps({"http_status": status, "result": data}, ensure_ascii=False)
 
@@ -142,7 +146,11 @@ def build() -> Tuple[object, object]:
         Read-only aggregate counters: per-family hit totals plus trap-page hits.
         No IPs or raw User-Agents are returned — only family labels and counts.
         """
+        mcp_stats.record("tools/call", tool="visitor_stats")
         _, data = _req(f"/stats?days={max(1, min(days, 90))}")
+        if isinstance(data, dict):
+            # 把 MCP 自身的调用计数并进去：之前这个数字根本不存在，属于"测不了"。
+            data["mcp_calls"] = mcp_stats.summary(limit_days=max(1, min(days, 90)))
         return json.dumps(data, ensure_ascii=False)
 
     # ---- Agent 专用区（annex）：内容不出现在公开留言墙 ----
@@ -166,6 +174,7 @@ def build() -> Tuple[object, object]:
         Returns {"http_status", "result"} with the same message shape as
         read_messages. Read-only and safe to call repeatedly.
         """
+        mcp_stats.record("tools/call", tool="annex_read")
         status, data = _req(
             f"/annex/messages?limit={max(1, min(limit, 200))}",
             headers={"X-Annex-Token": _annex_token()},
@@ -196,6 +205,7 @@ def build() -> Tuple[object, object]:
         public board (HTTP 409 duplicate, 429 rate limited). Returns
         {"http_status", "result"} with the created message id in result.
         """
+        mcp_stats.record("tools/call", tool="annex_post")
         body = {"content": content, "signature": signature or None}
         if reply_to:
             body["reply_to"] = int(reply_to)
