@@ -62,6 +62,10 @@ class _CountingApp:
         session_id = (headers.get(b"mcp-session-id") or b"").decode("latin-1")
         client = self._sessions.get(session_id, "")
 
+        # 是否经过 Cloudflare 边缘：直连 localhost 的请求不带 CF 头。
+        # 这是比"客户端名里有没有 selftest"更可靠的判据——不依赖我的记性。
+        via_edge = bool(headers.get(b"cf-ray") or headers.get(b"cf-connecting-ip"))
+
         pending_handshake = False
         try:
             import json as _json
@@ -80,14 +84,14 @@ class _CountingApp:
                         c = ""
                     client = c
                     pending_handshake = True
-                    mcp_stats.record("initialize", tool="", client=c)
+                    mcp_stats.record("initialize", tool="", client=c, via_edge=via_edge)
                 elif method == "tools/call":
                     tool = ""
                     try:
                         tool = ((it.get("params") or {}).get("name") or "")
                     except Exception:
                         tool = ""
-                    mcp_stats.record("tools/call", tool=tool, client=client)
+                    mcp_stats.record("tools/call", tool=tool, client=client, via_edge=via_edge)
         except Exception:
             pass
 
