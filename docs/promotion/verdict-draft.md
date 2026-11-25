@@ -86,6 +86,76 @@ Google 的正确通道是 GSC（URL 检查 / 重新提交 sitemap）或外部入
 4. **实测**：连调 3 个工具 → 计数 2 → 5（+3 正确），`by_tool` 分布正确
 
 所以判定里这一项改为「11-24 前不可测，11-24 起可测」。**之前那句是错的，不是"数据滞后"。**
+## MCP 观测（2026-11-24 起自建计数）
+
+### 为什么要有这一节
+
+11-24 之前的判定里写着「MCP 调用 = 0」，但站点**从来不记录 MCP 请求**
+（
+eads 里连 /mcp 路径都没有）。那个 0 来自 Glama 后台，而我从未真正读到过它。
+按「数字不掺水」的要求已撤下，改为「测不了 → 先让它测得着」。
+
+### 计数怎么工作
+
+- 表 mcp_calls：t / day / method / tool / ok / client / selftest / via_edge，**不存 IP**
+- 计数点在 ASGI 层：同时看到 JSON-RPC method 与请求头，能记 initialize 与 	ools/call
+- **自测判定两条判据**（任一成立即算自测）：
+  1. 客户端声明名含 selftest
+  2. 请求未带 cf-ray / cf-connecting-ip（即直连本机，不是从隧道进来）
+- 查询入口：GET /admin/mcp-stats、公开 GET /stats 的 mcp_calls 字段、数据集导出
+- 金丝雀 	ools/mcp_canary.py 每天跑一次（能证明它会失败，不只看它会通过）
+
+### 实际数据（截至 2026-11-25 21:47）
+
+`
+total=39   selftest=36   external=3
+by_tool: (initialize)=20, read_messages=17, annex_read=1, visitor_stats=1
+first_recorded_at: 2026-11-24T15:08:23+00:00
+`
+
+那 3 条外部记录：
+
+| # | 时间 (UTC) | 方法 | 客户端 | 工具 |
+| --- | --- | --- | --- | --- |
+| #30 | 2026-11-25T10:54:37 | initialize | glama | — |
+| #31 | 2026-11-25T11:56:40 | initialize | glama | — |
+| #32 | 2026-11-25T12:59:54 | initialize | glama | — |
+
+间隔 62.0 / 63.2 分钟 → 自动化轮询，不是人。
+**全部只有握手，零 	ools/call。**
+
+### 怎么读这个结果
+
+- **「外部连得进来」= 已验证**：3 次握手都带 ia_edge=1，确实从 Cloudflare 边缘进来
+- **「外部在被使用」= 不成立**：没有任何 
+ead_messages / post_message / nnex_*
+- 握手只说明目录侧的探测能连通；**使用**要看有没有工具调用
+
+### 已知的归因弱点（必须写进判定）
+
+命名约定判自测是脆的——我自己就违反过一次（用 ua-test 发探测，被记成外部，已人工纠正）。
+ia_edge 判据能兜住「本机直连」，但兜不住**经隧道回环打自己且没命名**的调用。
+所以：**11-27 出判定时会逐条复核所有非 selftest 记录**，不直接采信 external_total。
+
+
+## 公网可用性（断线窗口）
+
+判定必须写明这段时间公网断过，否则「断线期间没有外部流量」会被误读成「没人感兴趣」。
+
+数据来源：	ools/availability_log.py（只在状态变化时落一行）+ data/public-availability.jsonl。
+
+| 窗口 | 时长 | 依据 |
+| --- | --- | --- |
+| 2026-11-25 21:18:14 → 21:45:00 | **27 分钟** | watchdog 报 conns=0 起算；21:45 实测 /health 200 |
+
+**成因**：这台机器到 Cloudflare 整条线路不通（pi.cloudflare.com、cloudflare.com、
+1.1.1.1、discord.com、example.com 全部 000；pi.github.com、aidu.com 正常）。
+不是站点代码或隧道配置问题。
+
+**影响**：断线期间 Glama 的轮询会失败；它的最后三次成功握手都在断线之前（12:59 UTC = 20:59 CST）。
+恢复后到 21:47 为止，没有新的外部调用进来。
+
+
 ## 为什么不是分支 A / C / D
 
 | 分支 | 否掉的理由 |
