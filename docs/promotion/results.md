@@ -1544,3 +1544,30 @@ initialize=27, read_messages=21, tools/list=5, tools/list:rejected=2, annex_read
 **教训**：给「写入型」工具做负向测试时，要么用临时文件，要么测完立刻按特征清理——
 不能假设它"只是打印"。
 
+
+### 2026-11-25 22:05 补：给写状态的工具加 `--dry-run` / `--no-state`
+
+今天已经有三次「我的验证动作污染了被测数据」：
+
+1. 模拟外部调用插进 `mcp_calls`（删了）
+2. 模拟 DOWN/UP 写进可用性日志（删了）
+3. 失败路径的测试又写了一条 DOWN（删了）
+
+第三次之后我承认：**光靠「测完记得清理」不行，得让工具本身支持不写。**
+
+| 工具 | 新开关 | 行为 |
+| --- | --- | --- |
+| `availability_log.py` | `--dry-run` | 正常探测、正常打印，**不写** `public-availability.jsonl` |
+| `mcp_external_watch.py` | `--no-state` | 正常统计、正常告警，**不写** `.mcp-external-state.json` |
+
+**实测**：
+
+```
+--dry-run  + 不可达地址 → 打印 DOWN，日志行数 2 -> 2（不变）
+--no-state              → 打印统计与「不写状态文件」，状态文件内容一致
+```
+
+汇总仍只剩真实的 27 分钟窗口。
+
+**以后做负向测试的规矩**：先用 `--dry-run` / `--no-state`，确认行为对了再考虑真实写入。
+
