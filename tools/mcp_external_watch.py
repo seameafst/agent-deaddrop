@@ -47,10 +47,16 @@ def collect() -> dict:
             "SELECT id, at, client FROM mcp_calls "
             "WHERE method='initialize' AND COALESCE(selftest,0)=0 ORDER BY id"
         ))
+        rejected_rows = list(c.execute(
+            "SELECT id, at, method, client FROM mcp_calls "
+            "WHERE method LIKE '%:rejected' AND COALESCE(selftest,0)=0 ORDER BY id"
+        ))
         return {
             "external_tools_calls": len(rows),
             "rows": [dict(r) for r in rows],
             "external_initializes": len(init_rows),
+            "external_rejected": len(rejected_rows),
+            "rejected_rows": [dict(r) for r in rejected_rows],
             "last_initialize": (dict(init_rows[-1]) if init_rows else None),
             "max_id": (rows[-1]["id"] if rows else 0),
         }
@@ -79,9 +85,17 @@ def main() -> int:
     else:
         print(f"  外部 tools/call: {data['external_tools_calls']}（上次 {prev_calls}）")
         print(f"  外部 initialize: {data['external_initializes']}（上次 {prev_init}）")
+        print(f"  外部被拒(4xx): {data['external_rejected']}（上次 {prev.get('external_rejected', 0)}）")
         li = data.get("last_initialize")
         if li:
             print(f"  最后一次外部握手: {li['at']} by {li['client'] or '(未命名)'}")
+
+    prev_rej = int(prev.get("external_rejected", 0))
+    rejected_up = data["external_rejected"] > prev_rej
+    if rejected_up:
+        print("\n  ⚠️ 外部探测被 4xx 拒了，说明它在试我们没支持的形态：")
+        for r in data["rejected_rows"][prev_rej:]:
+            print(f"     #{r['id']} {r['at']} {r['method']} client={r['client'] or '(未命名)'}")
 
     changed = data["external_tools_calls"] > prev_calls
     if changed:
@@ -96,6 +110,7 @@ def main() -> int:
             {
                 "external_tools_calls": data["external_tools_calls"],
                 "external_initializes": data["external_initializes"],
+                "external_rejected": data["external_rejected"],
                 "checked_at": __import__("datetime").datetime.now().astimezone().isoformat(timespec="seconds"),
             },
             ensure_ascii=False,
@@ -103,7 +118,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    return 2 if changed else 0
+    return 2 if (changed or rejected_up) else 0
 
 
 if __name__ == "__main__":
