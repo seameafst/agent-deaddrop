@@ -1,0 +1,2 @@
+{"at": "2026-11-25T21:18:14+08:00", "up": false, "detail": "backfilled: watchdog saw tunnel down (conns=0)"}
+{"at": "2026-11-25T21:45:00+08:00", "up": true, "detail": "backfilled: public /health 200 again (verified 21:45)"}
