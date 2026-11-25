@@ -1385,3 +1385,27 @@ $code = [int]$proc.ExitCode      # 这个是可靠的
 **为什么单列出来**：Glama 已握手 3 次但零工具调用。握手只说明"连得上"，
 `tools/call` 才说明"真的在用"——这个数字决定 11-27 的判定走向，必须有人专门盯。
 
+
+---
+
+## 2026-11-25：退出码问题的**全仓审计**（不只是修那一处）
+
+修完 `Invoke-Step` 后，把仓库里所有 `ExitCode` / `$LASTEXITCODE` 用法都列出来检查：
+
+| 文件 | 用法 | 结论 |
+| --- | --- | --- |
+| `migrate.ps1` | 原生命令后的 `$LASTEXITCODE` | ✅ 合法（原生调用才有这个变量） |
+| `refresh_dataset.ps1` | `$?` + `$LASTEXITCODE` 双判据 | ✅ 而且它早就注释过「命令启动失败时 `$LASTEXITCODE` 会保留上一条的 0」 |
+| `watchdog_loop.ps1` | 原为 `Start-Process` 的 `$p.ExitCode` | ❌ 读到空 → **已改为 `System.Diagnostics.Process`** |
+
+### 两个分支都做了实测（不是只测修好的那一处）
+
+| 分支 | 构造 | 日志实际输出 |
+| --- | --- | --- |
+| 外部 tools/call 哨兵（exit 2） | 插一条模拟外部调用 | `EXTERNAL TOOLS/CALL! #49 ... tool=post_message client=LOOP-SIM3` ✅ |
+| MCP 金丝雀（exit ≠ 0） | 临时把金丝雀换成 `sys.exit(3)` 的桩 | `mcp canary FAILED (exit=3): FAIL 桩：故意失败用于验证循环告警链路` ✅ |
+
+金丝雀桩用完已恢复，恢复后实跑：`OK 计数器正常（+2 且只记在 selftest 上）`，exit=0。
+
+**结论**：循环里「看退出码判断」的链路现在是活的。这两处证伪测试都留下了日志原文，可复查。
+
