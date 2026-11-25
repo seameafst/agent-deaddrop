@@ -37,10 +37,11 @@ def _conn() -> sqlite3.Connection:
                tool TEXT NOT NULL DEFAULT '',
                ok INTEGER NOT NULL DEFAULT 1,
                client TEXT NOT NULL DEFAULT '',
-               selftest INTEGER NOT NULL DEFAULT 0
+               selftest INTEGER NOT NULL DEFAULT 0,
+               via_edge INTEGER
            )"""
     )
-    # 旧表（11-24 早些时候建的）没有 selftest 列，补上
+    # 旧表可能缺列，逐列补
     cols = {r[1] for r in conn.execute("PRAGMA table_info(mcp_calls)")}
     if "selftest" not in cols:
         try:
@@ -51,24 +52,39 @@ def _conn() -> sqlite3.Connection:
             )
         except Exception:
             pass
+    if "via_edge" not in cols:
+        try:
+            conn.execute("ALTER TABLE mcp_calls ADD COLUMN via_edge INTEGER")
+        except Exception:
+            pass
     return conn
 
 
-def record(method: str, tool: str = "", ok: bool = True, client: str = "") -> None:
+def record(method: str, tool: str = "", ok: bool = True, client: str = "", via_edge: bool | None = None) -> None:
     """记一次 MCP 调用。绝不抛异常——统计失败不能影响工具本身。
 
-    selftest 标记：客户端声明名里含 `selftest`（我自己测的）就标 1。
-    这样判定里能分开「我自己测了几次」和「外部真的调了几次」，
-    不至于用自己的测试数据冒充外部兴趣。
+    自测判定（按可靠性排序）：
+      1. 客户端声明名里含 `selftest` → 自测；
+      2. `via_edge=False`（请求没经过 Cloudflare 边缘，是直连 localhost）→ 自测；
+      3. 其余算外部。
+
+    为什么加第 2 条：光靠命名约定太脆——2026-11-24 我自己就用 `ua-test`
+    这个不含 selftest 的名字发过探测，于是被记成了"外部调用"。
+    直连 localhost 的请求一定来自本机（隧道流量都带 CF 头），这条判据不依赖我的记性。
+
+    仍然存在的盲区：经隧道回环打自己（https://wirehush.com 打自己）且没带 selftest 名字的调用
+    会被算成外部。这种调用必须自己命名，无法自动识别——已在 results.md 里写明。
     """
     try:
         now = datetime.now(timezone.utc)
-        is_self = 1 if "selftest" in (client or "").lower() else 0
+        name_self = 1 if "selftest" in (client or "").lower() else 0
+        local_self = 1 if via_edge is False else 0
+        is_self = 1 if (name_self or local_self) else 0
         conn = _conn()
         try:
             conn.execute(
-                "INSERT INTO mcp_calls (at, day, method, tool, ok, client, selftest) "
-                "VALUES (?,?,?,?,?,?,?)",
+                "INSERT INTO mcp_calls (at, day, method, tool, ok, client, selftest, via_edge) "
+                "VALUES (?,?,?,?,?,?,?,?)",
                 (
                     now.isoformat(timespec="seconds"),
                     now.date().isoformat(),
@@ -77,6 +93,7 @@ def record(method: str, tool: str = "", ok: bool = True, client: str = "") -> No
                     1 if ok else 0,
                     (client or "")[:_MAX_CLIENT],
                     is_self,
+                    None if via_edge is None else (1 if via_edge else 0),
                 ),
             )
             conn.commit()
@@ -126,7 +143,7 @@ def summary(limit_days: Optional[int] = None) -> dict:
                 "by_tool": by_tool,
                 "by_day": by_day,
                 "first_recorded_at": first or "",
-                "note": "selftest 按 clientInfo.name 里出现 selftest 判定；external_total 才是真实外部调用",
+                "note": "selftest = 客户端名含 selftest 或请求未经过 Cloudflare 边缘（直连本地）；external_total 才算外部",
             }
         finally:
             conn.close()
