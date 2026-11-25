@@ -1213,3 +1213,53 @@ OK 计数器正常（+2 且只记在 selftest 上）       exit=0
 本地测试和真实外部流量都会经过 cloudflared，所以单一信号也不够。两个信号都不完美，
 只能靠复核。）
 
+
+---
+
+## 🔔 2026-11-25：第一条真实外部 MCP 流量出现了
+
+计数器上线 30 小时后，它抓到了第一条**真正来自外部**的 MCP 调用：
+
+```
+#30  2026-11-25T10:54:37Z  initialize  client='glama'  via_edge=1  selftest=0
+#31  2026-11-25T11:56:40Z  initialize  client='glama'  via_edge=1  selftest=0
+#32  2026-11-25T12:59:54Z  initialize  client='glama'  via_edge=1  selftest=0
+```
+
+- 间隔 **62.0 / 63.2 分钟** → 明显是自动化轮询，不是人
+- `via_edge=1` → 确实经过 Cloudflare 边缘，不是本机
+- 客户端名 `glama` → 是我们的 MCP 目录条目（`com.wirehush/agent-dead-drop`）
+- **只有 initialize，没有 tools/call** → 它完成了握手，但没有调用任何工具
+
+### 这意味着什么
+
+1. **外部确实有人（有程序）连进来了** —— 这是 44 天观测期里第一次
+2. 但它**只握手、不读不写** —— 更像是目录侧的健康检查/能力探测
+3. 所以：**「外部 MCP 调用」不再是 0，但「被实际使用」仍然是 0**
+
+### 判定口径同步更新
+
+| 指标 | 之前 | 现在 |
+| --- | --- | --- |
+| MCP total | 自测若干 | 36 |
+| MCP selftest | 全部 | 33 |
+| **MCP external** | 0 | **3（全部是 initialize，无工具调用）** |
+
+### 归因改造（这一轮的技术改动）
+
+上一轮发现"只靠客户端命名"太脆（我自己就违反过一次），所以加了第二条判据：
+
+- `via_edge = 请求头里有没有 cf-ray / cf-connecting-ip`
+- 直连 localhost → 不带 CF 头 → **自动算自测**，不依赖我的记性
+- 经隧道 → 带 CF 头 → 才算外部候选
+
+**双向实测**：
+
+| 场景 | 结果 |
+| --- | --- |
+| 带 CF 头 + 名字不含 selftest | external **+2** ✅（期望 +2） |
+| 无 CF 头 + 名字不含 selftest | selftest **+2** ✅（期望 +0 external） |
+
+（公网直连测试时 TLS 握手超时过，所以这条用「本地 + 伪造 CF 头」做等价验证，
+已如实标注为模拟。）
+
