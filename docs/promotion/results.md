@@ -1325,3 +1325,63 @@ OK 计数器正常（+2 且只记在 selftest 上）       exit=0
 （回填的两行标注了 `backfilled`，与自动记录区分开；
 测试用的模拟行已删除，避免污染统计。）
 
+
+---
+
+## 🔴 2026-11-25：第三次踩同一个坑——`Start-Process` 的 ExitCode 是空的
+
+### 怎么发现的
+
+给「外部 tools/call」加了哨兵（`mcp_external_watch.py`，有新增就 exit 2），
+循环里写的是 `if ($e.ExitCode -eq 2) { 告警 }`。
+
+插一条模拟外部调用、跑循环——**告警没出现**。
+
+逐层排查后定位：`Start-Process` 带 `-RedirectStandardOutput` 时，
+`$p.ExitCode` 返回**空**，即使调了 `WaitForExit()` + `Refresh()` 也读不到
+（新开 PowerShell 用同样写法复现：`ExitCode=` 后面什么都没有）。
+
+### 影响面（这才是重点）
+
+这条链上所有「看退出码判断成功/失败」的逻辑**全都是死的**：
+
+| 位置 | 判断 | 实际 |
+| --- | --- | --- |
+| 数据集刷新 | `exit -ne 0` 才记日志 | 之前一直打印 `exit=`（空），我以为是格式小问题 |
+| MCP 金丝雀 | `exit -ne 0` 才记 FAIL | **失败会被静默吞掉** |
+| 外部 tools/call 哨兵 | `exit -eq 2` 才告警 | 永远不告警 |
+| 数据集新鲜度守卫 | 用文本判断，不受影响 | 正常 |
+
+**11-21 我修过一次 ExitCode 为空**（加了 `WaitForExit()`），当时看着 dataset 打出 `exit=0` 就以为好了——
+其实那只是恰好能读到；换成新进程/带重定向就又空了。**我当时的验证不充分。**
+
+### 修法
+
+`Invoke-Step` 改用 `System.Diagnostics.Process`：
+
+```powershell
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.UseShellExecute = $false; $psi.CreateNoWindow = $true
+$psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
+$psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+$proc = [System.Diagnostics.Process]::Start($psi)
+...
+$code = [int]$proc.ExitCode      # 这个是可靠的
+```
+
+### 验证（正反两面）
+
+| 场景 | 结果 |
+| --- | --- |
+| 插一条模拟外部 tools/call → 跑循环 | 日志出现 `EXTERNAL TOOLS/CALL! #49 ... tool=post_message client=LOOP-SIM3` ✅ |
+| 数据集步骤（期望 exit 0） | `dataset refreshed (exit=0): ...` ✅ |
+| 模拟行与状态 | 已删除 / 已重置；当前 `外部 tools/call = 0` |
+
+### 新增：外部 tools/call 哨兵
+
+`tools/mcp_external_watch.py`：统计「非 selftest 的 tools/call」，与上次比较，
+**只在增加时 exit 2** 并打印新行（工具名/时间/客户端）。每轮循环都跑（一次 SQL，成本可忽略）。
+
+**为什么单列出来**：Glama 已握手 3 次但零工具调用。握手只说明"连得上"，
+`tools/call` 才说明"真的在用"——这个数字决定 11-27 的判定走向，必须有人专门盯。
+
