@@ -92,6 +92,10 @@ class _CountingApp:
                     except Exception:
                         tool = ""
                     mcp_stats.record("tools/call", tool=tool, client=client, via_edge=via_edge)
+                elif method == "tools/list":
+                    # 目录/健康检查通常只做到这一步：读一次工具目录。
+                    # 「连上」→「看到目录」→「真的调用」是三件事，不能混在一起数。
+                    mcp_stats.record("tools/list", tool="", client=client, via_edge=via_edge)
         except Exception:
             pass
 
