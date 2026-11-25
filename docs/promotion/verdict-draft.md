@@ -124,6 +124,26 @@ first_recorded_at: 2026-11-24T15:08:23+00:00
 间隔 62.0 / 63.2 分钟 → 自动化轮询，不是人。
 **全部只有握手，零 	ools/call。**
 
+### 三段式：连上 → 看到目录 → 真的用了
+
+计数现在区分三件事（不能混为一谈）：
+
+| 阶段 | 含义 | 外部现状 |
+| --- | --- | --- |
+| `initialize` | 握手成功，连得上 | **3 次**（全是 glama） |
+| `tools/list` | 读到了工具目录 | **0 次** |
+| `tools/call` | 真的调用某个工具 | **0 次** |
+
+**外部证据**（2026-11-25，详见 `evidence-glama-healthcheck.md`）：目录健康检查
+（Glama 等）在设计上**只做零成本握手**——`initialize` / `initialized` / `ping` / `tools/list`，
+**永远不调用 `tools/call`**。公开源码原话：
+
+> Everything that spends (tools/call) stays strictly bearer-gated.
+> **A HANDSHAKE IS NOT USE.** ... Only a `tools/call` is somebody doing something.
+
+所以「Glama 三次 initialize、零 tools/call」**是预期行为**，
+不能读作「有人连进来却不使用」。
+
 ### 怎么读这个结果
 
 - **「外部连得进来」= 已验证**：3 次握手都带 ia_edge=1，确实从 Cloudflare 边缘进来
