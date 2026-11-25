@@ -1453,3 +1453,40 @@ $code = [int]$proc.ExitCode      # 这个是可靠的
 **触发条件**：如果 Glama 那边把我们的 listing 标成不健康，或者日志里出现
 探测回 400 的证据，就按上面方案实现。
 
+
+### 2026-11-25 补：给「被拒的探测」装上证据采集
+
+上一轮我发现「无 session 的 `tools/list` 会被 400 拒」，但没有证据判断
+Glama 到底试没试过。**与其猜，不如让它自己留痕。**
+
+#### 改了什么
+
+1. **`tools/list` 改为拿到响应码之后再记**：
+   - `2xx` → `tools/list`（真的读到了目录）
+   - `4xx` → `tools/list:rejected`（试了，被我们拒了）
+2. `initialize` / `tools/call` 若返回 4xx，也各记一条 `<method>:rejected`
+3. 外部哨兵 `mcp_external_watch.py` 增加「外部被拒(4xx)」计数，**增加时也 exit 2**
+
+#### 实测
+
+| 场景 | HTTP | 记账 |
+| --- | --- | --- |
+| 无 session 的 `tools/list` | 400 | `tools/list:rejected` |
+| 有 session 的 `tools/list` | 200 | `tools/list` |
+| 一次 `initialize` + 带 session 的 `tools/list` | 200 | `initialize` +1、`tools/list` +1 |
+
+当前 `by_tool`：
+
+```
+initialize=27, read_messages=21, tools/list=5, tools/list:rejected=2, annex_read=1, visitor_stats=1
+```
+
+那 2 条 rejected 全部是本机自测（`via_edge=0`、`selftest=1`），**外部 rejected 目前 0**。
+
+#### 这样一来 11-27 就有答案了
+
+- 如果 `external_rejected > 0` 且 client 是 glama → 风险坐实，按第 76 轮记录的方案实现无 session 应答
+- 如果一直是 0 → Glama 只做握手，那个风险不存在，判定里写明「已验证不影响」
+
+**不用再靠推断。**
+
