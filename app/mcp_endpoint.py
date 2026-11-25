@@ -67,6 +67,7 @@ class _CountingApp:
         via_edge = bool(headers.get(b"cf-ray") or headers.get(b"cf-connecting-ip"))
 
         pending_handshake = False
+        seen_methods = []
         try:
             import json as _json
 
@@ -76,6 +77,8 @@ class _CountingApp:
                 if not isinstance(it, dict):
                     continue
                 method = it.get("method") or ""
+                if method:
+                    seen_methods.append(method)
                 if method == "initialize":
                     c = ""
                     try:
@@ -93,15 +96,19 @@ class _CountingApp:
                         tool = ""
                     mcp_stats.record("tools/call", tool=tool, client=client, via_edge=via_edge)
                 elif method == "tools/list":
-                    # 目录/健康检查通常只做到这一步：读一次工具目录。
-                    # 「连上」→「看到目录」→「真的调用」是三件事，不能混在一起数。
-                    mcp_stats.record("tools/list", tool="", client=client, via_edge=via_edge)
+                    # 延迟到拿到响应码之后再记：目录探测常常因缺 session 被 400 拒，
+                    # 「读到目录」和「被拒」是两种完全不同的结果，不能都记成 tools/list。
+                    pass
         except Exception:
             pass
 
         # 捕获响应头里的 session id，把 client 绑上去
+        response_status = {"code": 0}
+
         async def send_wrapper(message):
             nonlocal session_id, client
+            if message.get("type") == "http.response.start":
+                response_status["code"] = int(message.get("status") or 0)
             if pending_handshake and message.get("type") == "http.response.start":
                 try:
                     for k, v in message.get("headers") or []:
@@ -124,7 +131,26 @@ class _CountingApp:
                 return {"type": "http.request", "body": body, "more_body": False}
             return await receive()
 
-        return await self.app(scope, replay, send_wrapper)
+        result = await self.app(scope, replay, send_wrapper)
+
+        # 被拒探测的证据：4xx 说明「对方试了、我们拒了」。
+        # 没有这条，就永远分不清「它没试 tools/list」和「它试了但被 400 挡回来」。
+        code = response_status["code"]
+        if seen_methods:
+            try:
+                for m in set(seen_methods):
+                    if m == "tools/list":
+                        # 「读到目录」与「被拒」必须分开记
+                        label = "tools/list" if 0 < code < 400 else "tools/list:rejected"
+                        mcp_stats.record(label, tool="", client=client, via_edge=via_edge)
+                    elif code >= 400 and m in ("initialize", "tools/call"):
+                        mcp_stats.record(
+                            m + ":rejected", tool="", client=client, via_edge=via_edge
+                        )
+            except Exception:
+                pass
+
+        return result
 
 
 def available() -> bool:
