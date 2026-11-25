@@ -104,6 +104,18 @@ while ($true) {
         Write-LoopLog ("watchdog error: {0}" -f $_.Exception.Message)
     }
 
+    # 公网可用性时间线：只在"通→断 / 断→通"时落一行，供判定写明断线窗口
+    $avail = Join-Path $PSScriptRoot "availability_log.py"
+    if (Test-Path $avail) {
+        try {
+            $a = Invoke-Step -Exe $py -ArgList @("-X", "utf8", $avail) -TimeoutSec 60 -Tag "avail"
+            if (-not $a.TimedOut -and $a.Output -match '记录状态变化') {
+                $aline = (($a.Output -split "`n") | Where-Object { $_ -match '记录状态变化' } | Select-Object -First 1)
+                Write-LoopLog ("public availability: {0}" -f (($aline -replace '\s+', ' ').Trim()))
+            }
+        } catch { }
+    }
+
     # 数据集刷新（默认每 6 小时）：抓本地接口、记录公网站点地址
     if ($DatasetEveryHours -gt 0 -and (Test-Path $py) -and (Test-Path $exporter)) {
         if (((Get-Date) - $lastDataset).TotalHours -ge $DatasetEveryHours) {
