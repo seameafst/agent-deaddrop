@@ -1409,3 +1409,47 @@ $code = [int]$proc.ExitCode      # 这个是可靠的
 
 **结论**：循环里「看退出码判断」的链路现在是活的。这两处证伪测试都留下了日志原文，可复查。
 
+
+---
+
+## 2026-11-25：发现一个「目录探测可能判我们不健康」的风险（未修，先记录）
+
+### 实测
+
+不带 session、直接 POST 的探测请求，我们的 MCP 端点全部返回 **400**：
+
+| 请求 | 结果 |
+| --- | --- |
+| `tools/list`（无 session） | `400 Bad Request: Missing session` |
+| `ping`（无 session） | `400 Bad Request: Missing session` |
+| `resources/list`（无 session） | `400 Bad Request: Missing session` |
+
+### 为什么可能是问题
+
+外部门控源码（`hermoso/mcp/http.mjs`）明确写到，目录探测常常把 `initialize` 和
+`tools/list` 当作**两个独立的 HTTP 请求**发出、彼此不带 session：
+
+> a single shared stateless transport 500s on the second standalone request
+> (initialize and tools/list arrive as separate HTTP calls with no session between them)
+
+如果 Glama 也是这么探，它会拿到 400 → 可能把连接器判成不可用。
+
+### 但我们**没有证据**说它因此判我们不健康
+
+- 我们观察到的是 3 次 `initialize`、**0 次 `tools/list`**
+- 两种解释都成立：(a) 它根本没试，只做握手；(b) 它试了但失败，所以我们没记到
+- 我们的计数只记成功解析出的 method，400 的请求进的是 SDK 之前的分支？
+
+**结论：这是「可能的风险」，不是「已确认的故障」。** 我不打算为一个未证实的问题
+去复制一份工具目录常量（那会引入漂移风险，而且是猜测驱动的改动）。
+
+### 真要修的话，成本与方案（留给后续）
+
+在 ASGI 包装层拦截「无 session + `tools/list`/`ping`/`resources/list`」，
+直接返回 JSON-RPC 结果。难点是**目录不能手写**（会和真实注册漂移）——
+可行做法是用 SDK 的 in-memory transport 在启动时枚举一次工具清单，做成只读常量，
+并加一致性自检。
+
+**触发条件**：如果 Glama 那边把我们的 listing 标成不健康，或者日志里出现
+探测回 400 的证据，就按上面方案实现。
+
