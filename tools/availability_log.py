@@ -133,6 +133,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="https://wirehush.com")
     ap.add_argument("--summary", action="store_true")
+    ap.add_argument("--dry-run", action="store_true", help="只探测不写日志（负向测试用）")
     args = ap.parse_args()
 
     if args.summary:
@@ -140,7 +141,10 @@ def main() -> int:
 
     up, detail = probe_confirm(args.base)
     print(f"  探测 {args.base}/health -> {'UP' if up else 'DOWN'}（{detail}）")
-    record(up, detail)
+    if args.dry_run:
+        print("  --dry-run：不写日志")
+    else:
+        record(up, detail)
     return 0
 
 
