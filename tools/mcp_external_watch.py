@@ -67,6 +67,7 @@ def collect() -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--no-state", action="store_true", help="不写状态文件（负向测试用）")
     args = ap.parse_args()
 
     data = collect()
@@ -104,6 +105,9 @@ def main() -> int:
         for r in new_rows:
             print(f"     #{r['id']} {r['at']}  tool={r['tool']}  client={r['client'] or '(未命名)'}")
 
+    if args.no_state:
+        print("  --no-state：不写状态文件")
+        return 0 if not changed else 2
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(
         json.dumps(
