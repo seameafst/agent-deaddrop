@@ -68,27 +68,42 @@ function Invoke-Step {
         [int]$TimeoutSec = 300,
         [string]$Tag = "step"
     )
-    $outFile = Join-Path $logDir ("_step_{0}.out" -f $Tag)
-    $errFile = $outFile + ".err"
-    $p = Start-Process -FilePath $Exe -ArgumentList $ArgList -WindowStyle Hidden -PassThru `
-        -RedirectStandardOutput $outFile -RedirectStandardError $errFile
-    $done = $p.WaitForExit($TimeoutSec * 1000)
-    if (-not $done) {
-        try { $p.Kill() } catch { }
+    # 用 System.Diagnostics.Process 而不是 Start-Process：
+    # Start-Process + 重定向时 $p.ExitCode 会返回空（11-25 实测），
+    # 导致 "exit=2 才报警" 这类判断永远不成立——告警就这样静默失效过。
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Exe
+    $psi.Arguments = (($ArgList | ForEach-Object {
+        if ($_ -match '\s') { '"' + $_ + '"' } else { $_ }
+    }) -join ' ')
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+    $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+
+    try {
+        $proc = [System.Diagnostics.Process]::Start($psi)
+    } catch {
+        Write-LoopLog ("{0}: failed to start ({1})" -f $Tag, $_.Exception.Message)
+        return @{ TimedOut = $false; ExitCode = -1; Output = "" }
+    }
+
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+    if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
+        try { $proc.Kill() } catch { }
         Write-LoopLog ("{0}: TIMEOUT after {1}s (killed)" -f $Tag, $TimeoutSec)
         return @{ TimedOut = $true; ExitCode = -1; Output = "" }
     }
+    $proc.WaitForExit()
     $text = ""
-    try { if (Test-Path $outFile) { $text = Get-Content $outFile -Raw -Encoding UTF8 } } catch { }
-    try { Remove-Item $outFile, $errFile -Force -ErrorAction SilentlyContinue } catch { }
+    try { $text = $stdoutTask.Result } catch { }
+    try { $err = $stderrTask.Result; if ($err) { $text = $text + "`n" + $err } } catch { }
     $code = -1
-    try {
-        # Start-Process 带重定向时，ExitCode 要等流读完才可用：
-        # 再调用一次无参 WaitForExit() 把异步输出刷完。
-        $p.WaitForExit()
-        $p.Refresh()
-        if ($p.HasExited) { $code = [int]$p.ExitCode }
-    } catch { }
+    try { $code = [int]$proc.ExitCode } catch { }
+    $proc.Dispose()
     return @{ TimedOut = $false; ExitCode = $code; Output = $text }
 }
 
@@ -116,6 +131,18 @@ while ($true) {
         } catch { }
     }
 
+    # 外部 tools/call 哨兵：握手不算数，工具调用才算「被使用」。每轮都查（很便宜）。
+    $extWatch = Join-Path $PSScriptRoot "mcp_external_watch.py"
+    if (Test-Path $extWatch) {
+        try {
+            $e = Invoke-Step -Exe $py -ArgList @("-X", "utf8", $extWatch) -TimeoutSec 90 -Tag "extwatch"
+            if (-not $e.TimedOut -and $e.ExitCode -eq 2) {
+                $eline = (($e.Output -split "`n") | Where-Object { $_ -match 'tool=' } | Select-Object -First 2) -join ' | '
+                Write-LoopLog ("EXTERNAL TOOLS/CALL! {0}" -f (($eline -replace '\s+', ' ').Trim()))
+            }
+        } catch { }
+    }
+
     # 数据集刷新（默认每 6 小时）：抓本地接口、记录公网站点地址
     if ($DatasetEveryHours -gt 0 -and (Test-Path $py) -and (Test-Path $exporter)) {
         if (((Get-Date) - $lastDataset).TotalHours -ge $DatasetEveryHours) {
@@ -136,6 +163,7 @@ while ($true) {
             } catch {
                 Write-LoopLog ("dataset refresh failed: {0}" -f $_.Exception.Message)
             }
+
 
             # 数据集新鲜度守卫：GitHub 的 schedule 经常延迟数小时甚至跳过，
             # 发现公网那份落后就手动触发 workflow_dispatch（repo scope 够用）。
