@@ -1490,3 +1490,22 @@ initialize=27, read_messages=21, tools/list=5, tools/list:rejected=2, annex_read
 
 **不用再靠推断。**
 
+
+### 2026-11-25 末：11-27 之前的运行保障检查
+
+改了十几处代码后做了一次全量回归 + 保障检查：
+
+| 项目 | 状态 |
+| --- | --- |
+| 站点体检（16 页 / 死链 / 英文覆盖） | **全部通过** |
+| MCP 四个工具冒烟（tools/list、read_messages、visitor_stats、annex_read） | 全 OK |
+| 看门狗循环 | 1 个常驻进程 |
+| cloudflared | 1 个 |
+| uvicorn | 监听 8000（单实例） |
+| 开机自启（Startup VBS） | 在 |
+
+循环里挂的任务：可用性探测（每轮）、外部 tools/call 哨兵（每轮）、金丝雀（每天）、
+推广哨兵（每天）、数据集刷新 + 新鲜度守卫（每 6 小时）。
+
+**结论：到 11-27 的观测数据会被自动记录，不依赖我在场。**
+
