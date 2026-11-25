@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -43,6 +44,23 @@ def probe(base: str) -> tuple[bool, str]:
         return False, f"HTTP {e.code}"
     except Exception as e:
         return False, str(e)[:80]
+
+
+def probe_confirm(base: str, attempts: int = 3) -> tuple[bool, str]:
+    """连续失败才算断。
+
+    单次请求会抽风：2026-11-25 22:00 我手动探了一次 `000`，十几秒后再探就是 200。
+    如果不重试，这种抖动会被写进「断线窗口」，把判定用的停机时长弄脏。
+    """
+    last = ""
+    for i in range(max(1, attempts)):
+        up, detail = probe(base)
+        if up:
+            return True, detail
+        last = detail
+        if i < attempts - 1:
+            time.sleep(5)
+    return False, last
 
 
 def _last_state() -> tuple[bool | None, str]:
@@ -120,7 +138,7 @@ def main() -> int:
     if args.summary:
         return summary()
 
-    up, detail = probe(args.base)
+    up, detail = probe_confirm(args.base)
     print(f"  探测 {args.base}/health -> {'UP' if up else 'DOWN'}（{detail}）")
     record(up, detail)
     return 0
