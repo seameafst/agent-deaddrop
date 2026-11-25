@@ -115,10 +115,13 @@ def summary(limit_days: Optional[int] = None) -> dict:
                 where = "WHERE at >= datetime('now', ?)"
                 params = (f"-{int(limit_days)} days",)
             total = conn.execute(f"SELECT COUNT(*) c FROM mcp_calls {where}", params).fetchone()["c"]
+            # 三段式区分：initialize（连上）/ tools/list（看到目录）/ <tool>（真的调用）。
+            # 不能把空 tool 一律标成 (initialize)——tools/list 也没有 tool 名。
             by_tool = {
-                (r["tool"] or "(initialize)"): r["c"]
+                ((r["tool"] or "") if r["tool"] else (r["method"] or "?")): r["c"]
                 for r in conn.execute(
-                    f"SELECT tool, COUNT(*) c FROM mcp_calls {where} GROUP BY tool ORDER BY c DESC",
+                    f"SELECT tool, method, COUNT(*) c FROM mcp_calls {where} "
+                    f"GROUP BY tool, method ORDER BY c DESC",
                     params,
                 )
             }
